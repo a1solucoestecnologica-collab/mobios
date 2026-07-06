@@ -1,0 +1,12 @@
+node_modules/
+
+*.log
+cloudflared.exe
+cloudflared*.log
+
+data/*.sqlite-shm
+data/*.sqlite-wal
+
+.env
+.DS_Store
+Thumbs.db

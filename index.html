@@ -1,0 +1,844 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Moble Tools | Cadastro de Ferramentas</title>
+    <link rel="stylesheet" href="./styles.css?v=20260703-tool-owner" />
+  </head>
+  <body>
+    <section class="login-screen hidden" id="loginScreen">
+      <form class="login-card" id="loginForm">
+        <div>
+          <p class="eyebrow">Moble Tools</p>
+          <h1>Acesso da plataforma</h1>
+          <p>Entre para utilizar o cadastro, listas requeridas e painel de colaboradores.</p>
+        </div>
+
+        <label>
+          E-mail
+          <input class="input" id="loginEmail" type="email" autocomplete="username" required />
+        </label>
+        <label>
+          Senha
+          <input class="input" id="loginPassword" type="password" autocomplete="current-password" required />
+        </label>
+        <button class="button primary" type="submit">Entrar</button>
+        <p class="login-error hidden" id="loginError"></p>
+      </form>
+    </section>
+
+    <div class="app-shell">
+      <header class="app-header">
+        <button class="header-icon" type="button" id="menuToggleBtn" aria-label="Menu lateral">☰</button>
+        <div class="header-brand">
+          <strong>Möble</strong>
+          <span>Tools</span>
+        </div>
+        <div class="global-search">
+          <span>⌕</span>
+          <input type="search" placeholder="Buscar preparação, ferramenta ou responsável..." />
+        </div>
+        <button class="header-icon notification-dot" type="button" aria-label="Notificações">○</button>
+        <div class="user-chip">
+          <div class="avatar" id="currentUserAvatar">NE</div>
+          <div>
+            <strong id="currentUserName">Nova Era</strong>
+            <span id="currentUserRole">Marcenaria</span>
+          </div>
+        </div>
+        <button class="button ghost hidden" type="button" id="logoutBtn">Sair</button>
+      </header>
+
+      <aside class="sidebar" aria-label="Navegacao principal">
+        <nav class="nav-list">
+          <button class="nav-item" type="button">
+            <span class="nav-icon">▦</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-item active" type="button" data-view="tools">
+            <span class="nav-icon">▣</span>
+            <span>Cadastro de Ferramentas</span>
+          </button>
+          <button class="nav-item" type="button" data-view="categories">
+            <span class="nav-icon">≡</span>
+            <span>Categorias</span>
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">▤</span>
+            <span>Planejamento</span>
+          </button>
+          <button class="nav-item" type="button" data-view="workBoxes">
+            <span class="nav-icon">▣</span>
+            <span>Caixas de Obra</span>
+          </button>
+          <button class="nav-item" type="button" data-view="templates">
+            <span class="nav-icon">▤</span>
+            <span>Separações Predeterminadas</span>
+          </button>
+          <button class="nav-item" type="button" data-view="required">
+            <span class="nav-icon">▥</span>
+            <span>Lista Requerida</span>
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">⇄</span>
+            <span>Carga</span>
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">↩</span>
+            <span>Retorno</span>
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">◷</span>
+            <span>Histórico</span>
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">▧</span>
+            <span>Relatórios</span>
+          </button>
+          <button class="nav-item" type="button" data-view="users">
+            <span class="nav-icon">○</span>
+            <span>Colaboradores</span>
+          </button>
+          <button class="nav-item" type="button">
+            <span class="nav-icon">⚙</span>
+            <span>Configurações</span>
+          </button>
+        </nav>
+
+        <div class="plan-card">
+          <div class="plan-icon">◇</div>
+          <div>
+            <strong>Plano Pro</strong>
+            <span>Marcenaria Nova Era</span>
+          </div>
+        </div>
+      </aside>
+
+      <main class="workspace">
+        <header class="topbar">
+          <div>
+            <h1>Cadastro de Ferramentas</h1>
+            <p>Gerencie todos os itens reutilizáveis disponíveis para preparação das instalações.</p>
+          </div>
+          <div class="topbar-actions">
+            <button class="button primary" type="button" id="newToolBtn">Nova ferramenta</button>
+            <button class="button ghost" type="button" id="exportJsonBtn">Exportar JSON</button>
+          </div>
+        </header>
+
+        <section class="metrics-grid" aria-label="Indicadores">
+          <article class="metric-card">
+            <span>Total</span>
+            <strong id="metricTotal">0</strong>
+          </article>
+          <article class="metric-card">
+            <span>Disponiveis</span>
+            <strong id="metricActive">0</strong>
+          </article>
+          <article class="metric-card warning">
+            <span>Manutencao</span>
+            <strong id="metricMaintenance">0</strong>
+          </article>
+          <article class="metric-card muted">
+            <span>Inativas</span>
+            <strong id="metricInactive">0</strong>
+          </article>
+        </section>
+
+        <section class="panel" id="toolsView">
+          <div class="panel-header">
+            <div>
+              <h2>Ferramentas</h2>
+              <p>Cadastro de itens reutilizaveis usados nas preparacoes de obra.</p>
+            </div>
+            <div class="filter-row">
+              <input class="input search" id="toolSearch" type="search" placeholder="Pesquisar por nome ou codigo" />
+              <select class="input" id="statusFilter">
+                <option value="">Todos os status</option>
+                <option value="active">Disponivel</option>
+                <option value="in_work">Em obra</option>
+                <option value="loaned">Emprestada</option>
+                <option value="maintenance">Em manutencao</option>
+                <option value="broken">Quebrado</option>
+                <option value="lost">Perdida</option>
+                <option value="inactive">Inativa</option>
+              </select>
+              <select class="input" id="categoryFilter">
+                <option value="">Todas as categorias</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Foto</th>
+                  <th>Codigo</th>
+                  <th>Ferramenta</th>
+                  <th>Categoria</th>
+                  <th>Proprietario</th>
+                  <th>Controle</th>
+                  <th>Status</th>
+                  <th>Atualizado</th>
+                  <th class="actions-col">Acoes</th>
+                </tr>
+              </thead>
+              <tbody id="toolsTableBody"></tbody>
+            </table>
+          </div>
+
+          <div class="empty-state hidden" id="toolsEmpty">
+            <h3>Nenhuma ferramenta cadastrada</h3>
+            <p>Cadastre a primeira ferramenta para iniciar o Cadastro de Ferramentas.</p>
+            <button class="button primary" type="button" id="emptyNewToolBtn">Cadastrar ferramenta</button>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="categoriesView">
+          <div class="panel-header">
+            <div>
+              <h2>Categorias</h2>
+              <p>Organize ferramentas por categoria e subcategoria.</p>
+            </div>
+            <button class="button primary" type="button" id="newCategoryBtn">Nova categoria</button>
+          </div>
+
+          <div class="category-grid" id="categoryGrid"></div>
+        </section>
+
+        <section class="panel hidden" id="requiredView">
+          <div class="panel-header">
+            <div>
+              <h2>Lista Requerida</h2>
+              <p>Monte a lista de ferramentas que precisam sair para cada obra.</p>
+            </div>
+            <button class="button primary" type="button" id="newRequiredListBtn">Nova lista</button>
+          </div>
+
+          <div class="required-list" id="requiredList"></div>
+
+          <div class="empty-state hidden" id="requiredEmpty">
+            <h3>Nenhuma lista criada</h3>
+            <p>Crie a primeira lista requerida para uma obra.</p>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="templatesView">
+          <div class="panel-header">
+            <div>
+              <h2>Separações Predeterminadas</h2>
+              <p>Crie modelos por tipo de obra, como cozinha, dormitório ou assistência.</p>
+            </div>
+            <button class="button primary" type="button" id="newTemplateBtn">Novo modelo</button>
+          </div>
+
+          <div class="template-list" id="templateList"></div>
+
+          <div class="empty-state hidden" id="templatesEmpty">
+            <h3>Nenhum modelo criado</h3>
+            <p>Crie uma separação predeterminada para carregar ferramentas automaticamente nas obras.</p>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="usersView">
+          <div class="panel-header">
+            <div>
+              <h2>Colaboradores</h2>
+              <p>Cadastre colaboradores, funcoes e hierarquia operacional.</p>
+            </div>
+            <button class="button primary" type="button" id="newUserBtn">Novo colaborador</button>
+          </div>
+
+          <div class="users-list" id="usersList"></div>
+
+          <div class="empty-state hidden" id="usersEmpty">
+            <h3>Nenhum colaborador cadastrado</h3>
+            <p>Cadastre a primeira pessoa da equipe.</p>
+            <button class="button primary" type="button" id="emptyNewUserBtn">Cadastrar colaborador</button>
+          </div>
+        </section>
+
+        <section class="panel hidden" id="workBoxesView">
+          <div class="panel-header">
+            <div>
+              <h2>Caixas de Obra</h2>
+              <p>Controle os itens fixos que precisam estar sempre nas caixas antes da saida.</p>
+            </div>
+            <button class="button primary" type="button" id="newWorkBoxBtn">Nova caixa</button>
+          </div>
+
+          <div class="work-box-list" id="workBoxList"></div>
+
+          <div class="empty-state hidden" id="workBoxesEmpty">
+            <h3>Nenhuma caixa cadastrada</h3>
+            <p>Crie uma caixa e adicione os itens esperados do Cadastro de Ferramentas.</p>
+            <button class="button primary" type="button" id="emptyNewWorkBoxBtn">Criar caixa</button>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <nav class="mobile-tabbar" aria-label="Navegacao mobile">
+      <button class="mobile-tab active" type="button" data-mobile-view="tools">
+        <span>Cadastro</span>
+      </button>
+      <button class="mobile-tab" type="button" data-mobile-view="required">
+        <span>Lista</span>
+      </button>
+      <button class="mobile-fab" type="button" id="mobileNewToolBtn">
+        <span>Nova</span>
+      </button>
+      <button class="mobile-tab" type="button" data-mobile-view="workBoxes">
+        <span>Caixas</span>
+      </button>
+    </nav>
+
+    <dialog class="modal" id="toolDialog">
+      <form method="dialog" class="modal-card" id="toolForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Cadastro de Ferramentas</p>
+            <h2 id="toolDialogTitle">Nova ferramenta</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="toolDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <input type="hidden" id="toolId" />
+        <div class="wizard-progress" aria-label="Etapas do cadastro">
+          <button class="wizard-step active" type="button" data-tool-step="0">Foto</button>
+          <button class="wizard-step" type="button" data-tool-step="1">Dados</button>
+          <button class="wizard-step" type="button" data-tool-step="2">Categoria</button>
+          <button class="wizard-step" type="button" data-tool-step="3">Status</button>
+        </div>
+
+        <div class="tool-step active" data-step="0">
+          <div class="step-intro">
+            <h3>Foto da ferramenta</h3>
+            <p>Use a camera ou escolha uma imagem do dispositivo.</p>
+          </div>
+          <div class="photo-input-group">
+            <div class="photo-actions">
+              <button class="button secondary" type="button" id="choosePhotoBtn">Escolher arquivo</button>
+              <button class="button secondary" type="button" id="cameraPhotoBtn">Abrir camera</button>
+            </div>
+            <input class="sr-only" id="toolPhoto" type="file" accept="image/*" />
+            <input class="sr-only" id="toolCameraPhoto" type="file" accept="image/*" capture="environment" />
+          </div>
+          <div class="photo-preview-wrap">
+            <img class="photo-preview hidden" id="toolPhotoPreview" alt="Preview da ferramenta" />
+            <button class="button ghost hidden" type="button" id="removePhotoBtn">Remover foto</button>
+          </div>
+        </div>
+
+        <div class="form-grid tool-step" data-step="1">
+          <div class="step-intro full">
+            <h3>Dados principais</h3>
+            <p>Identifique a ferramenta de forma simples.</p>
+          </div>
+          <label>
+            Nome
+            <input class="input" id="toolName" required />
+          </label>
+          <label>
+            Codigo interno
+            <input class="input" id="toolCode" placeholder="Gerado automaticamente se vazio" />
+          </label>
+          <label>
+            Proprietario
+            <select class="input" id="toolOwner" required></select>
+          </label>
+          <label class="full">
+            Observacoes
+            <textarea class="input" id="toolNotes" rows="4"></textarea>
+          </label>
+        </div>
+
+        <div class="form-grid tool-step" data-step="2">
+          <div class="step-intro full">
+            <h3>Classificacao</h3>
+            <p>Organize onde essa ferramenta entra no cadastro.</p>
+          </div>
+          <div class="category-guide full" aria-label="Sugestoes de categoria">
+            <button class="category-guide-card" type="button" data-category-match="Ferramentas Eletricas">
+              <strong>Eletrica</strong>
+              <span>Parafusadeira, furadeira, serra</span>
+            </button>
+            <button class="category-guide-card" type="button" data-category-match="Ferramentas Manuais">
+              <strong>Manual</strong>
+              <span>Trena, alicate, chave</span>
+            </button>
+            <button class="category-guide-card" type="button" data-category-match="Equipamentos">
+              <strong>Equipamento</strong>
+              <span>Escada, bancada, compressor</span>
+            </button>
+            <button class="category-guide-card" type="button" data-category-match="EPIs">
+              <strong>EPI</strong>
+              <span>Oculos, luva, capacete</span>
+            </button>
+            <button class="category-guide-card" type="button" data-category-match="Itens de Apoio">
+              <strong>Apoio</strong>
+              <span>Extensao, adaptador, regua</span>
+            </button>
+          </div>
+          <label>
+            Categoria
+            <select class="input" id="toolCategory" required></select>
+          </label>
+          <label>
+            Subcategoria
+            <select class="input" id="toolSubcategory"></select>
+          </label>
+          <label>
+            Modelo de controle
+            <select class="input" id="toolControlModel" required>
+              <option value="individual">Individual</option>
+              <option value="quantity">Por quantidade</option>
+            </select>
+          </label>
+          <label>
+            Quantidade
+            <input class="input" id="toolQuantity" type="number" min="0" step="1" value="1" />
+          </label>
+        </div>
+
+        <div class="form-grid tool-step" data-step="3">
+          <div class="step-intro full">
+            <h3>Status e identificacao</h3>
+            <p>Defina a situacao atual e se a ferramenta tera QR Code.</p>
+          </div>
+          <label>
+            Status
+            <select class="input" id="toolStatus" required>
+              <option value="active">Disponivel</option>
+              <option value="in_work">Em obra</option>
+              <option value="loaned">Emprestada</option>
+              <option value="maintenance">Em manutencao</option>
+              <option value="broken">Quebrado</option>
+              <option value="lost">Perdida</option>
+              <option value="inactive">Inativa</option>
+            </select>
+          </label>
+          <label class="hidden" id="toolLoanedToField">
+            Emprestada para
+            <input class="input" id="toolLoanedTo" list="toolOwnerOptions" placeholder="Nome do colaborador ou pessoa externa" />
+            <datalist id="toolOwnerOptions"></datalist>
+          </label>
+          <label class="hidden" id="toolCurrentJobField">
+            Obra atual
+            <select class="input" id="toolCurrentJobId"></select>
+          </label>
+          <label class="hidden" id="toolCurrentJobManualField">
+            Obra atual manual
+            <input class="input" id="toolCurrentJobLabel" placeholder="Ex: Cliente - Cozinha apartamento" />
+          </label>
+          <label>
+            QR Code
+            <select class="input" id="toolQrReady">
+              <option value="true">Preparado</option>
+              <option value="false">Nao preparado</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="toolDialog">Cancelar</button>
+          <button class="button secondary" type="button" id="prevToolStepBtn">Voltar</button>
+          <button class="button primary" type="button" id="nextToolStepBtn">Continuar</button>
+          <button class="button primary hidden" type="submit" id="saveToolBtn">Salvar ferramenta</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="categoryDialog">
+      <form method="dialog" class="modal-card compact" id="categoryForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Cadastro de Ferramentas</p>
+            <h2>Nova categoria</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="categoryDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <label>
+          Nome da categoria
+          <input class="input" id="categoryName" required />
+        </label>
+        <label>
+          Subcategorias
+          <textarea class="input" id="categorySubcategories" rows="4" placeholder="Uma por linha"></textarea>
+        </label>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="categoryDialog">Cancelar</button>
+          <button class="button primary" type="submit">Salvar categoria</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="requiredDialog">
+      <form method="dialog" class="modal-card" id="requiredForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Lista Requerida</p>
+            <h2 id="requiredDialogTitle">Nova lista para obra</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="requiredDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <input type="hidden" id="requiredId" />
+        <div class="form-grid">
+          <label>
+            Cliente
+            <input class="input" id="requiredClient" required />
+          </label>
+          <label>
+            Obra
+            <input class="input" id="requiredWork" required />
+          </label>
+          <label>
+            Data prevista
+            <input class="input" id="requiredDate" type="date" />
+          </label>
+          <label>
+            Responsavel
+            <input class="input" id="requiredResponsible" />
+          </label>
+          <label class="full">
+            Observacoes
+            <textarea class="input" id="requiredNotes" rows="3"></textarea>
+          </label>
+          <label class="full" id="requiredTemplateField">
+            Separação predeterminada
+            <select class="input" id="requiredTemplateSelect">
+              <option value="">Selecionar modelo para carregar itens</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="required-dialog-tabs" role="tablist" aria-label="Itens da lista requerida">
+          <button class="required-dialog-tab active" type="button" data-required-tab="tools">Ferramentas da obra</button>
+          <button class="required-dialog-tab" type="button" data-required-tab="boxes">Caixas de Obra</button>
+        </div>
+
+        <section class="required-picker" data-required-tab-panel="tools">
+          <div class="required-picker-header">
+            <h3>Ferramentas da obra</h3>
+            <input class="input" id="requiredToolSearch" type="search" placeholder="Buscar ferramenta" />
+          </div>
+          <div class="required-tool-list" id="requiredToolList"></div>
+        </section>
+
+        <section class="required-picker hidden" data-required-tab-panel="boxes">
+          <div class="required-picker-header">
+            <h3>Caixas de Obra</h3>
+            <p class="muted-text">Selecione as caixas que vao sair junto nesta obra. Elas nao entram na lista de ferramentas.</p>
+          </div>
+          <div class="required-box-list" id="requiredBoxList"></div>
+        </section>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="requiredDialog">Cancelar</button>
+          <button class="button primary" type="submit">Salvar lista</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="templateDialog">
+      <form method="dialog" class="modal-card" id="templateForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Separações Predeterminadas</p>
+            <h2 id="templateDialogTitle">Novo modelo</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="templateDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <input type="hidden" id="templateId" />
+        <div class="form-grid">
+          <label>
+            Nome do modelo
+            <input class="input" id="templateName" placeholder="Ex: Cozinha" required />
+          </label>
+          <label class="full">
+            Observações
+            <textarea class="input" id="templateNotes" rows="3" placeholder="Quando usar este modelo"></textarea>
+          </label>
+        </div>
+
+        <div class="required-dialog-tabs" role="tablist" aria-label="Itens do modelo">
+          <button class="required-dialog-tab active" type="button" data-template-tab="tools">Ferramentas padrão</button>
+          <button class="required-dialog-tab" type="button" data-template-tab="boxes">Caixas padrão</button>
+        </div>
+
+        <section class="required-picker" data-template-tab-panel="tools">
+          <div class="required-picker-header">
+            <h3>Ferramentas padrão</h3>
+            <input class="input" id="templateToolSearch" type="search" placeholder="Buscar ferramenta" />
+          </div>
+          <div class="required-tool-list" id="templateToolList"></div>
+        </section>
+
+        <section class="required-picker hidden" data-template-tab-panel="boxes">
+          <div class="required-picker-header">
+            <h3>Caixas padrão</h3>
+            <p class="muted-text">Selecione caixas que normalmente acompanham este tipo de obra.</p>
+          </div>
+          <div class="required-box-list" id="templateBoxList"></div>
+        </section>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="templateDialog">Cancelar</button>
+          <button class="button primary" type="submit">Salvar modelo</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="workBoxDialog">
+      <form method="dialog" class="modal-card" id="workBoxForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Caixas de Obra</p>
+            <h2 id="workBoxDialogTitle">Nova caixa</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="workBoxDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <input type="hidden" id="workBoxId" />
+        <div class="form-grid">
+          <label>
+            Nome da caixa
+            <input class="input" id="workBoxName" required />
+          </label>
+          <label>
+            Responsavel
+            <input class="input" id="workBoxResponsible" />
+          </label>
+          <label>
+            Status
+            <select class="input" id="workBoxStatus">
+              <option value="active">Ativa</option>
+              <option value="inactive">Inativa</option>
+            </select>
+          </label>
+          <label class="full">
+            Observacoes
+            <textarea class="input" id="workBoxNotes" rows="2"></textarea>
+          </label>
+        </div>
+
+        <div class="required-picker">
+          <div class="required-picker-header">
+            <h3>Itens esperados na caixa</h3>
+            <input class="input search" id="workBoxToolSearch" type="search" placeholder="Buscar item do Cadastro de Ferramentas" />
+          </div>
+          <div class="required-tool-list" id="workBoxToolList"></div>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="workBoxDialog">Cancelar</button>
+          <button class="button primary" type="submit">Salvar caixa</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="workBoxCheckDialog">
+      <form method="dialog" class="modal-card" id="workBoxCheckForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Conferencia da caixa</p>
+            <h2 id="workBoxCheckTitle">Conferir caixa</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="workBoxCheckDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <input type="hidden" id="workBoxCheckId" />
+        <div class="form-grid">
+          <label>
+            Conferido por
+            <input class="input" id="workBoxCheckedBy" />
+          </label>
+          <label class="full">
+            Observacoes da conferencia
+            <textarea class="input" id="workBoxCheckNotes" rows="2"></textarea>
+          </label>
+        </div>
+
+        <div class="box-check-list" id="workBoxCheckList"></div>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="workBoxCheckDialog">Cancelar</button>
+          <button class="button primary" type="submit">Salvar conferencia</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="userDialog">
+      <form method="dialog" class="modal-card compact" id="userForm">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Colaboradores</p>
+            <h2 id="userDialogTitle">Novo colaborador</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="userDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <input type="hidden" id="userId" />
+        <div class="form-grid">
+          <label>
+            Nome
+            <input class="input" id="userName" required />
+          </label>
+          <label>
+            E-mail
+            <input class="input" id="userEmail" type="email" />
+          </label>
+          <label>
+            Telefone
+            <input class="input" id="userPhone" />
+          </label>
+          <input class="hidden" id="userPassword" type="hidden" value="" />
+          <label>
+            Funcao / perfil
+            <select class="input" id="userRole">
+              <option value="owner">Dono / Diretor</option>
+              <option value="manager">Gestor</option>
+              <option value="supervisor">Supervisor</option>
+              <option value="operator">Operador</option>
+              <option value="viewer">Visualizador</option>
+            </select>
+          </label>
+          <label>
+            Gestor direto
+            <select class="input" id="userManager"></select>
+          </label>
+          <label class="hidden">
+            Acesso
+            <select class="input" id="userAccessStatus">
+              <option value="enabled">Liberado</option>
+              <option value="disabled">Bloqueado</option>
+            </select>
+          </label>
+          <fieldset class="permission-grid full hidden">
+            <legend>Permissoes de acesso</legend>
+            <label><input type="checkbox" value="tools" data-user-permission /> Cadastro de ferramentas</label>
+            <label><input type="checkbox" value="required" data-user-permission /> Lista requerida</label>
+            <label><input type="checkbox" value="categories" data-user-permission /> Categorias</label>
+            <label><input type="checkbox" value="users" data-user-permission /> Colaboradores</label>
+            <label><input type="checkbox" value="reports" data-user-permission /> Relatorios</label>
+          </fieldset>
+          <label class="full">
+            Observacoes
+            <textarea class="input" id="userNotes" rows="3"></textarea>
+          </label>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="userDialog">Cancelar</button>
+          <button class="button primary" type="submit">Salvar colaborador</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog class="modal" id="qrDialog">
+      <div class="modal-card compact">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Identificacao individual</p>
+            <h2 id="qrToolName">QR Code</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="qrDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <div class="qr-card" id="qrPrintArea">
+          <img class="qr-image" id="qrImage" alt="QR Code da ferramenta" />
+          <strong id="qrInternalCode"></strong>
+          <span id="qrPayload"></span>
+        </div>
+
+        <div class="modal-actions">
+          <button class="button ghost" type="button" data-close-dialog="qrDialog">Fechar</button>
+          <button class="button secondary" type="button" id="downloadQrBtn">Baixar PNG</button>
+          <button class="button primary" type="button" id="printQrBtn">Imprimir</button>
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="photoDialog">
+      <div class="modal-card photo-modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Foto da ferramenta</p>
+            <h2 id="photoDialogTitle">Visualizar foto</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="photoDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <div class="photo-viewer">
+          <img id="photoDialogImage" alt="Foto ampliada da ferramenta" />
+        </div>
+      </div>
+    </dialog>
+
+    <dialog class="modal" id="detailDialog">
+      <div class="modal-card detail-modal-card">
+        <div class="modal-header">
+          <div>
+            <p class="eyebrow">Detalhe da ferramenta</p>
+            <h2 id="detailToolName">Ferramenta</h2>
+          </div>
+          <button class="icon-button" type="button" data-close-dialog="detailDialog" aria-label="Fechar">×</button>
+        </div>
+
+        <div class="detail-layout">
+          <div class="detail-photo-wrap">
+            <img class="detail-photo hidden" id="detailPhoto" alt="Foto da ferramenta" />
+            <div class="detail-photo-placeholder" id="detailPhotoPlaceholder">Sem foto</div>
+          </div>
+
+          <div class="detail-info">
+            <div class="detail-kv">
+              <span>Codigo</span>
+              <strong id="detailCode"></strong>
+            </div>
+            <div class="detail-kv">
+              <span>Status</span>
+              <strong id="detailStatus"></strong>
+            </div>
+            <div class="detail-kv">
+              <span>Categoria</span>
+              <strong id="detailCategory"></strong>
+            </div>
+            <div class="detail-kv">
+              <span>Proprietario</span>
+              <strong id="detailOwner"></strong>
+            </div>
+            <div class="detail-kv">
+              <span>Localizacao</span>
+              <strong id="detailLocation"></strong>
+            </div>
+            <div class="detail-kv">
+              <span>Controle</span>
+              <strong id="detailControl"></strong>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-actions">
+          <button class="button secondary" type="button" id="detailEditBtn">Editar</button>
+          <button class="button secondary" type="button" id="detailQrBtn">QR Code</button>
+        </div>
+
+        <section class="history-section">
+          <h3>Historico</h3>
+          <div class="history-list" id="detailHistoryList"></div>
+        </section>
+      </div>
+    </dialog>
+
+    <div class="toast hidden" id="toast" role="status"></div>
+
+    <script type="module" src="./app.js?v=20260703-tool-owner"></script>
+  </body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "moble-tools-engine",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "prepare-db": "node scripts/prepare-database.js",
+    "package": "powershell -ExecutionPolicy Bypass -File install/package-deploy.ps1"
+  },
+  "engines": {
+    "node": ">=22.5.0"
+  },
+  "dependencies": {
+    "qrcode": "^1.5.4"
+  }
+}
