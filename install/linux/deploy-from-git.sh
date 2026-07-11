@@ -12,7 +12,7 @@ usage() {
 Uso: bash install/linux/deploy-from-git.sh [opcoes]
 
 Atualiza a VM com a ultima versao do repositorio:
-  1. git pull
+  1. git fetch + reset (descarta alteracoes locais no clone de deploy)
   2. npm ci + build (planner, ponto, admin, portal)
   3. sincroniza /opt/moble-tools (preserva banco e uploads)
   4. reinicia o servico moble-tools
@@ -61,10 +61,13 @@ echo ""
 cd "$REPO_DIR"
 
 if [[ "$SKIP_PULL" -eq 0 ]]; then
-  echo "==> git pull origin ${BRANCH}"
+  echo "==> atualizando codigo a partir de origin/${BRANCH}"
+  if ! git diff --quiet 2>/dev/null || ! git diff --cached --quiet 2>/dev/null; then
+    echo "    alteracoes locais detectadas — serao descartadas (clone de deploy segue o GitHub)"
+  fi
   git fetch origin "$BRANCH"
   git checkout "$BRANCH"
-  git pull --ff-only origin "$BRANCH"
+  git reset --hard "origin/${BRANCH}"
   echo ""
 fi
 
