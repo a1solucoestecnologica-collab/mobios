@@ -29,7 +29,9 @@ export function createBlock({ x = 0, y = 0, title = "Novo bloco", kind = "block"
     labels: [],
     members: [],
     startDate: null,
+    startTime: null,
     dueDate: null,
+    endTime: null,
     dueTime: null,
     recurrence: "none",
     reminder: "none",
@@ -173,7 +175,7 @@ export function executionProgress(blocks) {
 export function cardDueStatus(block, now = new Date()) {
   if (block.completed) return { tone: "done", label: "Concluído" };
   if (!block.dueDate) return null;
-  const due = new Date(`${block.dueDate}T${block.dueTime || "23:59"}`);
+  const due = new Date(`${block.dueDate}T${block.endTime || block.dueTime || "23:59"}`);
   if (Number.isNaN(due.getTime())) return null;
   const diffMs = due.getTime() - now.getTime();
   if (diffMs < 0) return { tone: "late", label: "Atrasado" };

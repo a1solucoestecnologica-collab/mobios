@@ -198,7 +198,7 @@ export default function CardModal({ node, collaborators, onChange, onClose, onDe
                   />
                 </label>
                 <label>
-                  Entrega
+                  Fim
                   <input
                     type="date"
                     value={data.dueDate || ""}
@@ -206,11 +206,22 @@ export default function CardModal({ node, collaborators, onChange, onClose, onDe
                   />
                 </label>
                 <label>
-                  Hora
+                  Hora início
                   <input
                     type="time"
-                    value={data.dueTime || ""}
-                    onChange={(event) => patch({ dueTime: event.target.value || null })}
+                    value={data.startTime || ""}
+                    onChange={(event) => patch({ startTime: event.target.value || null })}
+                  />
+                </label>
+                <label>
+                  Hora fim
+                  <input
+                    type="time"
+                    value={data.endTime || data.dueTime || ""}
+                    onChange={(event) => {
+                      const value = event.target.value || null;
+                      patch({ endTime: value, dueTime: value });
+                    }}
                   />
                 </label>
                 <label>
