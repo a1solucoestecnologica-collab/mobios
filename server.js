@@ -1,4 +1,6 @@
-﻿import { createServer } from "node:http";
+﻿// MÖBI OS — Runtime HTTP e roteamento de APIs.
+// Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md
+import { createServer } from "node:http";
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { existsSync, mkdirSync } from "node:fs";
@@ -6,14 +8,24 @@ import { extname, join, normalize } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 import QRCode from "qrcode";
+import { initPontoDatabase, createPontoHandlers } from "./ponto/server-handlers.js";
+import { seedCollaboratorRole } from "./ponto/server-handlers/operational.js";
+import { initPlatformDatabase, createPlatformHandlers } from "./platform/server-handlers.js";
+import { platformLogin, platformLogout, buildRequestContext, createAuthorize } from "./platform/server-handlers/services/auth/index.js";
+import { initPortalDatabase, createPortalHandlers } from "./portal/server-handlers.js";
+import { initAdminDatabase, createAdminHandlers } from "./admin/server-handlers.js";
+import { assertProductionSecurity, bootstrapPlatformAdmin, isDevSeedAllowed } from "./platform/server-handlers/services/bootstrap/index.js";
+import { migratePlannerPersonLinks, reportIdentityLinkGaps } from "./platform/server-handlers/migrations/identity-hardening.js";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
+const uploadsDir = join(rootDir, "uploads", "ponto");
 const dataDir = join(rootDir, "data");
 const dbPath = join(dataDir, "moble-tools.sqlite");
 const port = Number(process.env.PORT || 4173);
 const host = process.env.HOST || "0.0.0.0";
 
 if (!existsSync(dataDir)) mkdirSync(dataDir, { recursive: true });
+if (!existsSync(uploadsDir)) mkdirSync(uploadsDir, { recursive: true });
 
 const db = new DatabaseSync(dbPath);
 db.exec(`
@@ -44,7 +56,7 @@ db.exec(`
     loaned_to TEXT,
     current_job_id TEXT,
     current_job_label TEXT,
-    owner TEXT NOT NULL DEFAULT 'MÃ¶ble',
+    owner TEXT NOT NULL DEFAULT 'MÖBI',
     control_model TEXT NOT NULL CHECK(control_model IN ('individual', 'quantity')),
     quantity INTEGER NOT NULL DEFAULT 1,
     status TEXT NOT NULL CHECK(status IN ('active', 'maintenance', 'inactive', 'broken', 'in_work', 'loaned', 'lost')),
@@ -137,6 +149,7 @@ db.exec(`
     created_at TEXT NOT NULL
   );
 
+  -- LEGADO (Tools/WorkMaps): substituído por people após migração. Ver /docs/IDENTITY_MIGRATION_PLAN.md
   CREATE TABLE IF NOT EXISTS platform_users (
     id TEXT PRIMARY KEY,
     name TEXT NOT NULL,
@@ -233,12 +246,12 @@ try {
 }
 
 try {
-  db.exec("ALTER TABLE tools ADD COLUMN owner TEXT NOT NULL DEFAULT 'MÃ¶ble'");
+  db.exec("ALTER TABLE tools ADD COLUMN owner TEXT NOT NULL DEFAULT 'MÖBI'");
 } catch (error) {
   if (!String(error.message).includes("duplicate column name")) throw error;
 }
 
-db.exec("UPDATE tools SET owner = 'MÃ¶ble' WHERE owner IS NULL OR trim(owner) = ''");
+db.exec("UPDATE tools SET owner = 'MÖBI' WHERE owner IS NULL OR trim(owner) = ''");
 
 try {
   db.exec("ALTER TABLE tools ADD COLUMN loaned_to TEXT");
@@ -264,11 +277,131 @@ try {
   if (!String(error.message).includes("duplicate column name")) throw error;
 }
 
+db.exec(`
+  CREATE TABLE IF NOT EXISTS planner_maps (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    canvas TEXT NOT NULL DEFAULT '{}',
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_blocks (
+    id TEXT PRIMARY KEY,
+    map_id TEXT NOT NULL REFERENCES planner_maps(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT '',
+    description TEXT NOT NULL DEFAULT '',
+    checklist TEXT NOT NULL DEFAULT '[]',
+    attachments TEXT NOT NULL DEFAULT '[]',
+    color TEXT NOT NULL DEFAULT '#2f6df6',
+    position_x REAL NOT NULL DEFAULT 0,
+    position_y REAL NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_connections (
+    id TEXT PRIMARY KEY,
+    map_id TEXT NOT NULL REFERENCES planner_maps(id) ON DELETE CASCADE,
+    source_block_id TEXT NOT NULL,
+    target_block_id TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_executions (
+    id TEXT PRIMARY KEY,
+    map_id TEXT NOT NULL REFERENCES planner_maps(id) ON DELETE CASCADE,
+    collaborator_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'active' CHECK(status IN ('active', 'finished', 'cancelled')),
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_execution_blocks (
+    id TEXT PRIMARY KEY,
+    execution_id TEXT NOT NULL REFERENCES planner_executions(id) ON DELETE CASCADE,
+    block_id TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'not_started' CHECK(status IN ('not_started', 'in_progress', 'done', 'cancelled')),
+    updated_at TEXT NOT NULL,
+    UNIQUE(execution_id, block_id)
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_lists (
+    id TEXT PRIMARY KEY,
+    map_id TEXT NOT NULL REFERENCES planner_maps(id) ON DELETE CASCADE,
+    title TEXT NOT NULL DEFAULT '',
+    position INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS planner_comments (
+    id TEXT PRIMARY KEY,
+    map_id TEXT NOT NULL REFERENCES planner_maps(id) ON DELETE CASCADE,
+    block_id TEXT NOT NULL,
+    author TEXT NOT NULL DEFAULT '',
+    body TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL DEFAULT 'comment',
+    created_at TEXT NOT NULL
+  );
+
+  CREATE INDEX IF NOT EXISTS idx_planner_blocks_map ON planner_blocks(map_id);
+  CREATE INDEX IF NOT EXISTS idx_planner_connections_map ON planner_connections(map_id);
+  CREATE INDEX IF NOT EXISTS idx_planner_executions_collab ON planner_executions(collaborator_id);
+  CREATE INDEX IF NOT EXISTS idx_planner_exec_blocks_exec ON planner_execution_blocks(execution_id);
+  CREATE INDEX IF NOT EXISTS idx_planner_lists_map ON planner_lists(map_id);
+  CREATE INDEX IF NOT EXISTS idx_planner_comments_block ON planner_comments(block_id);
+`);
+
+for (const statement of [
+  "ALTER TABLE planner_maps ADD COLUMN owner_collaborator_id TEXT",
+  "ALTER TABLE planner_blocks ADD COLUMN kind TEXT NOT NULL DEFAULT 'block'",
+  "ALTER TABLE planner_blocks ADD COLUMN routes TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE planner_blocks ADD COLUMN list_id TEXT",
+  "ALTER TABLE planner_blocks ADD COLUMN board_order INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE planner_blocks ADD COLUMN labels TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE planner_blocks ADD COLUMN members TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE planner_blocks ADD COLUMN checklists TEXT NOT NULL DEFAULT '[]'",
+  "ALTER TABLE planner_blocks ADD COLUMN start_date TEXT",
+  "ALTER TABLE planner_blocks ADD COLUMN due_date TEXT",
+  "ALTER TABLE planner_blocks ADD COLUMN due_time TEXT",
+  "ALTER TABLE planner_blocks ADD COLUMN recurrence TEXT NOT NULL DEFAULT 'none'",
+  "ALTER TABLE planner_blocks ADD COLUMN reminder TEXT NOT NULL DEFAULT 'none'",
+  "ALTER TABLE planner_blocks ADD COLUMN completed INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE planner_connections ADD COLUMN source_handle TEXT",
+  "ALTER TABLE planner_connections ADD COLUMN target_handle TEXT",
+]) {
+  try {
+    db.exec(statement);
+  } catch (error) {
+    if (!String(error.message).includes("duplicate column name")) throw error;
+  }
+}
+
 migrateToolsStatusConstraint();
+initPontoDatabase(db, rootDir);
+initPlatformDatabase(db);
+seedCollaboratorRole(db);
+initPortalDatabase(db);
+initAdminDatabase(db);
+
+const plannerPersonMigration = migratePlannerPersonLinks(db);
+if (plannerPersonMigration.migrated > 0) {
+  console.log(`[MÖBI OS] WorkMaps: ${plannerPersonMigration.migrated} execução(ões) vinculada(s) a people.id`);
+}
+
 seedDefaultCategories();
 seedDefaultAdmin();
 seedDefaultWorkBoxes();
 backfillJobWorkBoxItems();
+
+try {
+  assertProductionSecurity(db);
+} catch (error) {
+  console.error(`[MÖBI OS] ${error.message}`);
+  if (process.env.NODE_ENV === "production") process.exit(1);
+}
 
 const server = createServer(async (req, res) => {
   try {
@@ -290,16 +423,35 @@ const server = createServer(async (req, res) => {
   }
 });
 
-server.listen(port, host, () => {
-  console.log(`Moble Tools rodando em http://localhost:${port}`);
-  console.log(`Na rede local, acesse pelo IP deste computador na porta ${port}.`);
-  console.log(`Banco SQLite: ${dbPath}`);
-});
-
 async function handleApi(req, res, url) {
+  if (url.pathname.startsWith("/api/platform/")) {
+    await handlePlatformApi(req, res, url);
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/admin/")) {
+    await handleAdminApi(req, res, url);
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/ponto/")) {
+    await handlePontoApi(req, res, url);
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/portal/")) {
+    await handlePortalApi(req, res, url);
+    return;
+  }
+
+  if (url.pathname.startsWith("/api/planner/")) {
+    await handlePlannerApi(req, res, url);
+    return;
+  }
+
   if (req.method === "POST" && url.pathname === "/api/login") {
     const body = await readJson(req);
-    sendJson(res, 200, loginUser(res, body));
+    sendJson(res, 200, loginUser(req, res, body));
     return;
   }
 
@@ -310,7 +462,18 @@ async function handleApi(req, res, url) {
   }
 
   if (req.method === "GET" && url.pathname === "/api/me") {
-    sendJson(res, 200, { authenticated: true, user: null });
+    const ctx = buildRequestContext(db, req);
+    if (ctx?.person) {
+      sendJson(res, 200, {
+        authenticated: true,
+        person: ctx.person,
+        permissions: ctx.permissions,
+        accessibleApplications: ctx.accessibleApplications,
+      });
+      return;
+    }
+    const user = getAuthenticatedUser(req);
+    sendJson(res, 200, { authenticated: Boolean(user), user });
     return;
   }
 
@@ -529,32 +692,52 @@ async function handleApi(req, res, url) {
   sendJson(res, 404, { error: "Rota nao encontrada." });
 }
 
-function loginUser(res, input) {
+function loginUser(req, res, input) {
   const email = String(input.email || "").trim().toLowerCase();
   const password = String(input.password || "");
   if (!email || !password) throw new HttpError(400, "Informe e-mail e senha.");
 
-  const user = db
-    .prepare(
-      `SELECT id, name, email, role, access_status AS accessStatus, permissions, password_hash AS passwordHash
-       FROM platform_users
-       WHERE lower(email) = ?`,
-    )
-    .get(email);
-
-  if (!user || user.accessStatus !== "enabled" || !verifyPassword(password, user.passwordHash)) {
-    throw new HttpError(401, "E-mail ou senha invalidos.");
+  let result;
+  try {
+    result = platformLogin(db, res, { email, password }, {
+      ip: req.socket?.remoteAddress || null,
+      device: req.headers["user-agent"] || null,
+    });
+  } catch (error) {
+    throw new HttpError(error.status || 401, error.message || "E-mail ou senha invalidos.");
   }
 
-  const sessionId = createSession(user.id);
-  setSessionCookie(res, sessionId);
-  return { user: publicUser(user) };
+  let user = null;
+  if (result.legacyUserId) {
+    const legacyUser = db
+      .prepare(
+        `SELECT id, name, email, role, access_status AS accessStatus, permissions, password_hash AS passwordHash
+         FROM platform_users WHERE id = ?`,
+      )
+      .get(result.legacyUserId);
+    if (legacyUser) {
+      const sessionId = createSession(legacyUser.id);
+      appendSessionCookie(res, "moble_session", sessionId);
+      user = publicUser(legacyUser);
+    }
+  }
+
+  return { user, person: result.person };
+}
+
+function appendSessionCookie(res, name, value) {
+  const cookie = `${name}=${value}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${60 * 60 * 24 * 14}`;
+  const existing = res.getHeader("Set-Cookie");
+  if (Array.isArray(existing)) res.setHeader("Set-Cookie", [...existing, cookie]);
+  else if (existing) res.setHeader("Set-Cookie", [existing, cookie]);
+  else res.setHeader("Set-Cookie", cookie);
 }
 
 function logoutUser(req, res) {
   const sessionId = getSessionId(req);
   if (sessionId) db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
   res.setHeader("Set-Cookie", "moble_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  platformLogout(db, req, res);
 }
 
 function getAuthenticatedUser(req) {
@@ -732,6 +915,17 @@ async function generateToolQr(id) {
 }
 
 async function serveStatic(res, pathname) {
+  if (pathname === "/portal") {
+    res.writeHead(301, { location: "/portal/" });
+    res.end();
+    return;
+  }
+
+  if (pathname === "/portal/") {
+    await sendPortalStandalone(res);
+    return;
+  }
+
   const requestedPath = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^[/\\]+/, "");
   const safePath = normalize(requestedPath).replace(/^(\.\.[/\\])+/, "");
   const filePath = join(rootDir, safePath);
@@ -755,6 +949,16 @@ async function serveStatic(res, pathname) {
     }
     throw error;
   }
+}
+
+async function sendPortalStandalone(res) {
+  const filePath = join(rootDir, "portal", "index.html");
+  const content = await readFile(filePath);
+  res.writeHead(200, {
+    "content-type": "text/html; charset=utf-8",
+    "cache-control": "no-store, must-revalidate",
+  });
+  res.end(content);
 }
 
 function getState(options = {}) {
@@ -1796,7 +2000,7 @@ function migrateToolsStatusConstraint() {
       loaned_to TEXT,
       current_job_id TEXT,
       current_job_label TEXT,
-      owner TEXT NOT NULL DEFAULT 'MÃ¶ble',
+      owner TEXT NOT NULL DEFAULT 'MÖBI',
       control_model TEXT NOT NULL CHECK(control_model IN ('individual', 'quantity')),
       quantity INTEGER NOT NULL DEFAULT 1,
       status TEXT NOT NULL CHECK(status IN ('active', 'maintenance', 'inactive', 'broken', 'in_work', 'loaned', 'lost')),
@@ -1860,7 +2064,7 @@ function normalizeToolInput(input, id, createdAt, updatedAt) {
     internalCode: String(input.internalCode || "").trim() || generateInternalCode(name),
     categoryId: required(input.categoryId, "Categoria"),
     subcategory: String(input.subcategory || "").trim(),
-    owner: String(input.owner || "MÃ¶ble").trim() || "MÃ¶ble",
+    owner: String(input.owner || "MÖBI").trim() || "MÖBI",
     loanedTo,
     currentJobId,
     currentJobLabel,
@@ -1903,23 +2107,29 @@ function seedDefaultCategories() {
 
 function seedDefaultAdmin() {
   const count = db.prepare("SELECT COUNT(*) AS total FROM platform_users").get().total;
-  const withPassword = db.prepare("SELECT COUNT(*) AS total FROM platform_users WHERE password_hash IS NOT NULL AND password_hash != ''").get().total;
+  if (count > 0) return;
 
-  if (count > 0 && withPassword === 0) {
-    const owner =
-      db.prepare("SELECT id FROM platform_users WHERE role = 'owner' ORDER BY created_at LIMIT 1").get() ||
-      db.prepare("SELECT id FROM platform_users ORDER BY created_at LIMIT 1").get();
-    if (owner) {
-      db.prepare("UPDATE platform_users SET password_hash = ?, updated_at = ? WHERE id = ?").run(
-        hashPassword("admin123"),
-        new Date().toISOString(),
-        owner.id,
-      );
-    }
+  const bootstrapped = bootstrapPlatformAdmin(db, hashPassword);
+  if (bootstrapped) return;
+
+  if (!isDevSeedAllowed()) {
+    console.warn(
+      "[MÖBI OS] Nenhum usuário Tools. Em desenvolvimento, defina MOBI_BOOTSTRAP_ADMIN_EMAIL e MOBI_BOOTSTRAP_ADMIN_PASSWORD.",
+    );
     return;
   }
 
-  if (count > 0) return;
+  const { email, password } = {
+    email: String(process.env.MOBI_BOOTSTRAP_ADMIN_EMAIL || process.env.MOBI_DEV_ADMIN_EMAIL || "").trim().toLowerCase(),
+    password: String(process.env.MOBI_BOOTSTRAP_ADMIN_PASSWORD || process.env.MOBI_DEV_ADMIN_PASSWORD || ""),
+  };
+
+  if (!email || !password) {
+    console.warn(
+      "[MÖBI OS] Desenvolvimento: defina MOBI_BOOTSTRAP_ADMIN_EMAIL e MOBI_BOOTSTRAP_ADMIN_PASSWORD para criar o administrador inicial.",
+    );
+    return;
+  }
 
   const now = new Date().toISOString();
   db.prepare(
@@ -1929,14 +2139,14 @@ function seedDefaultAdmin() {
   ).run(
     "usr-admin",
     "Administrador",
-    "admin@moble.tools",
+    email,
     "",
     "owner",
     null,
     "enabled",
     JSON.stringify(["tools", "required", "categories", "users", "reports"]),
-    hashPassword("admin123"),
-    "Usuario administrador inicial.",
+    hashPassword(password),
+    "Usuario administrador inicial (desenvolvimento).",
     now,
     now,
   );
@@ -2026,6 +2236,11 @@ function getContentType(filePath) {
       ".css": "text/css; charset=utf-8",
       ".js": "text/javascript; charset=utf-8",
       ".json": "application/json; charset=utf-8",
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".webp": "image/webp",
+      ".pdf": "application/pdf",
     }[ext] || "application/octet-stream"
   );
 }
@@ -2056,5 +2271,661 @@ class HttpError extends Error {
     super(message);
     this.status = status;
   }
+}
+
+const platformAuthorize = createAuthorize(db, HttpError);
+const { handlePontoApi } = createPontoHandlers({ db, rootDir, readJson, sendJson, sendText, HttpError, authorize: platformAuthorize });
+const { handlePlatformApi } = createPlatformHandlers({ db, readJson, sendJson, HttpError, authorize: platformAuthorize });
+const { handlePortalApi } = createPortalHandlers({ sendJson });
+const { handleAdminApi } = createAdminHandlers({ db, readJson, sendJson, HttpError });
+
+server.listen(port, host, () => {
+  console.log(`MÖBI Tools rodando em http://localhost:${port}`);
+  console.log(`Na rede local, acesse pelo IP deste computador na porta ${port}.`);
+  console.log(`Banco SQLite: ${dbPath}`);
+});
+
+// ---------------------------------------------------------------------------
+// WorkMaps / Mooble Planner
+// Engine de mapas de trabalho: mapas, blocos, conexoes, execucoes.
+// O backend apenas persiste. Nenhuma regra de negocio de "tarefa" existe aqui.
+// ---------------------------------------------------------------------------
+
+async function handlePlannerApi(req, res, url) {
+  const { pathname } = url;
+
+  if (pathname === "/api/planner/maps") {
+    if (req.method === "GET") {
+      const collaboratorId = url.searchParams.get("collaboratorId") || null;
+      sendJson(res, 200, { maps: listPlannerMaps(collaboratorId) });
+      return;
+    }
+    if (req.method === "POST") {
+      const body = await readJson(req);
+      sendJson(res, 201, createPlannerMap(body));
+      return;
+    }
+  }
+
+  const mapMatch = pathname.match(/^\/api\/planner\/maps\/([^/]+)$/);
+  if (mapMatch) {
+    const id = mapMatch[1];
+    if (req.method === "GET") {
+      sendJson(res, 200, getPlannerMap(id));
+      return;
+    }
+    if (req.method === "PUT") {
+      const body = await readJson(req);
+      sendJson(res, 200, savePlannerMap(id, body));
+      return;
+    }
+    if (req.method === "DELETE") {
+      deletePlannerMap(id);
+      sendJson(res, 200, { ok: true });
+      return;
+    }
+  }
+
+  if (pathname === "/api/planner/collaborators" && req.method === "GET") {
+    const platformCtx = buildRequestContext(db, req);
+    if (platformCtx) {
+      if (!platformCtx.permissionCodes.has("planner.execute")) {
+        throw new HttpError(403, "Permissão insuficiente.");
+      }
+      const summary = resolvePlannerPersonSummary(platformCtx.person);
+      sendJson(res, 200, { collaborators: summary ? [summary] : [] });
+      return;
+    }
+    sendJson(res, 200, { collaborators: listPlannerCollaborators() });
+    return;
+  }
+
+  if (pathname === "/api/planner/portal/summary" && req.method === "GET") {
+    const platformCtx = buildRequestContext(db, req);
+    if (!platformCtx) throw new HttpError(401, "Sessão expirada. Faça login novamente.");
+    if (!platformCtx.permissionCodes.has("planner.execute")) throw new HttpError(403, "Permissão insuficiente.");
+    const personId = platformCtx.person.id;
+    const execution = getActiveExecutionForPerson(personId);
+    if (!execution) {
+      sendJson(res, 200, {
+        tasks: [],
+        checklists: [],
+        execution: null,
+        linkStatus: "missing",
+        message: "Cadastro incompleto: nenhuma execução WorkMaps vinculada a esta pessoa.",
+      });
+      return;
+    }
+    const payload = getPlannerExecution(execution.id);
+    const tasks = (payload.blocks || [])
+      .filter((b) => b.status !== "done" && b.status !== "cancelled")
+      .map((b) => ({
+        id: b.executionBlockId,
+        blockId: b.blockId,
+        title: b.title,
+        status: b.status,
+        mapName: payload.execution?.mapName || null,
+      }));
+    const checklists = (payload.blocks || [])
+      .filter((b) => Array.isArray(b.checklist) && b.checklist.length > 0)
+      .map((b) => ({
+        id: b.executionBlockId,
+        title: b.title,
+        items: b.checklist,
+        status: b.status,
+      }));
+    sendJson(res, 200, { tasks, checklists, execution: payload.execution });
+    return;
+  }
+
+  const collabExecMatch = pathname.match(/^\/api\/planner\/collaborators\/([^/]+)\/execution$/);
+  if (collabExecMatch && req.method === "GET") {
+    const platformCtx = buildRequestContext(db, req);
+    if (platformCtx) {
+      if (!platformCtx.permissionCodes.has("planner.execute")) throw new HttpError(403, "Permissão insuficiente.");
+      if (collabExecMatch[1] !== platformCtx.person.id) throw new HttpError(403, "Acesso não permitido.");
+      sendJson(res, 200, getExecutionPayloadForPerson(platformCtx.person.id));
+      return;
+    }
+    sendJson(res, 200, getCollaboratorExecution(collabExecMatch[1]));
+    return;
+  }
+
+  if (pathname === "/api/planner/executions" && req.method === "POST") {
+    const body = await readJson(req);
+    const platformCtx = buildRequestContext(db, req);
+    if (platformCtx && body.personId && body.personId !== platformCtx.person.id) {
+      throw new HttpError(403, "Não é permitido criar execução para outra pessoa.");
+    }
+    sendJson(res, 201, createPlannerExecution(body));
+    return;
+  }
+
+  const execMatch = pathname.match(/^\/api\/planner\/executions\/([^/]+)$/);
+  if (execMatch && req.method === "GET") {
+    const platformCtx = buildRequestContext(db, req);
+    if (platformCtx) {
+      const row = db.prepare("SELECT person_id AS personId FROM planner_executions WHERE id = ?").get(execMatch[1]);
+      if (!row || row.personId !== platformCtx.person.id) throw new HttpError(403, "Acesso não permitido.");
+    }
+    sendJson(res, 200, getPlannerExecution(execMatch[1]));
+    return;
+  }
+
+  const execBlockMatch = pathname.match(/^\/api\/planner\/execution-blocks\/([^/]+)$/);
+  if (execBlockMatch && req.method === "PATCH") {
+    const platformCtx = buildRequestContext(db, req);
+    if (platformCtx) {
+      if (!platformCtx.permissionCodes.has("planner.execute")) throw new HttpError(403, "Permissão insuficiente.");
+      const blockId = execBlockMatch[1];
+      const execRow = db
+        .prepare(
+          `SELECT e.person_id AS personId
+           FROM planner_execution_blocks eb
+           JOIN planner_executions e ON e.id = eb.execution_id
+           WHERE eb.id = ?`,
+        )
+        .get(blockId);
+      if (!execRow || execRow.personId !== platformCtx.person.id) {
+        throw new HttpError(403, "Acesso não permitido.");
+      }
+    }
+    const body = await readJson(req);
+    sendJson(res, 200, updateExecutionBlock(execBlockMatch[1], body));
+    return;
+  }
+
+  const commentsMatch = pathname.match(/^\/api\/planner\/blocks\/([^/]+)\/comments$/);
+  if (commentsMatch) {
+    const blockId = commentsMatch[1];
+    if (req.method === "GET") {
+      sendJson(res, 200, { comments: listBlockComments(blockId) });
+      return;
+    }
+    if (req.method === "POST") {
+      const body = await readJson(req);
+      sendJson(res, 201, addBlockComment(blockId, body));
+      return;
+    }
+  }
+
+  sendJson(res, 404, { error: "Rota do Planner nao encontrada." });
+}
+
+function mapPlannerBlockRow(row) {
+  const legacyChecklist = safeJsonParse(row.checklist, []);
+  let checklists = safeJsonParse(row.checklists, []);
+  // Compat: se ainda nao ha checklists agrupados mas existe o checklist antigo,
+  // converte para um unico grupo "Checklist".
+  if ((!Array.isArray(checklists) || checklists.length === 0) && legacyChecklist.length > 0) {
+    checklists = [{ id: `chl-${row.id}`, name: "Checklist", items: legacyChecklist }];
+  }
+  return {
+    id: row.id,
+    mapId: row.map_id,
+    title: row.title,
+    description: row.description,
+    checklist: legacyChecklist,
+    checklists,
+    attachments: safeJsonParse(row.attachments, []),
+    color: row.color,
+    kind: row.kind || "block",
+    routes: safeJsonParse(row.routes, []),
+    labels: safeJsonParse(row.labels, []),
+    members: safeJsonParse(row.members, []),
+    startDate: row.start_date || null,
+    dueDate: row.due_date || null,
+    dueTime: row.due_time || null,
+    recurrence: row.recurrence || "none",
+    reminder: row.reminder || "none",
+    completed: row.completed === 1,
+    listId: row.list_id || null,
+    boardOrder: row.board_order ?? 0,
+    positionX: row.position_x,
+    positionY: row.position_y,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
+function listPlannerMaps(collaboratorId = null) {
+  const where = collaboratorId ? "WHERE m.owner_collaborator_id = ?" : "";
+  const query = `SELECT
+        m.id,
+        m.name,
+        m.description,
+        m.owner_collaborator_id AS ownerCollaboratorId,
+        m.created_at AS createdAt,
+        m.updated_at AS updatedAt,
+        (SELECT COUNT(*) FROM planner_blocks b WHERE b.map_id = m.id) AS blockCount,
+        (SELECT COUNT(*) FROM planner_connections c WHERE c.map_id = m.id) AS connectionCount
+      FROM planner_maps m
+      ${where}
+      ORDER BY m.updated_at DESC`;
+  const stmt = db.prepare(query);
+  return collaboratorId ? stmt.all(collaboratorId) : stmt.all();
+}
+
+function createPlannerMap(input) {
+  const now = new Date().toISOString();
+  const id = createId("map");
+  const name = required(input.name, "Nome do mapa");
+  const description = String(input.description || "").trim();
+  const ownerCollaboratorId = input.collaboratorId ? String(input.collaboratorId) : null;
+  db.prepare(
+    "INSERT INTO planner_maps (id, name, description, canvas, owner_collaborator_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(id, name, description, "{}", ownerCollaboratorId, now, now);
+  // Mapas novos nascem com as 7 colunas de dias no Quadro; a tela branca comeca vazia.
+  seedWeekdayLists(id, now);
+  return getPlannerMap(id);
+}
+
+// Todo mapa novo tambem nasce com 7 colunas no Quadro: segunda a domingo.
+function seedWeekdayLists(mapId, now) {
+  const days = [
+    "SEGUNDA-FEIRA",
+    "TERÇA-FEIRA",
+    "QUARTA-FEIRA",
+    "QUINTA-FEIRA",
+    "SEXTA-FEIRA",
+    "SÁBADO",
+    "DOMINGO",
+  ];
+  const insert = db.prepare(
+    "INSERT INTO planner_lists (id, map_id, title, position, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
+  );
+  days.forEach((day, index) => insert.run(createId("lst"), mapId, day, index, now, now));
+}
+
+function getPlannerMap(id) {
+  const map = db
+    .prepare("SELECT id, name, description, canvas, created_at AS createdAt, updated_at AS updatedAt FROM planner_maps WHERE id = ?")
+    .get(id);
+  if (!map) throw new HttpError(404, "Mapa nao encontrado.");
+
+  const blocks = db
+    .prepare("SELECT * FROM planner_blocks WHERE map_id = ? ORDER BY created_at")
+    .all(id)
+    .map(mapPlannerBlockRow);
+
+  const connections = db
+    .prepare(
+      "SELECT id, map_id AS mapId, source_block_id AS source, target_block_id AS target, source_handle AS sourceHandle, target_handle AS targetHandle, created_at AS createdAt FROM planner_connections WHERE map_id = ? ORDER BY created_at",
+    )
+    .all(id);
+
+  const lists = db
+    .prepare(
+      "SELECT id, map_id AS mapId, title, position FROM planner_lists WHERE map_id = ? ORDER BY position, created_at",
+    )
+    .all(id);
+
+  return {
+    map: { ...map, canvas: safeJsonParse(map.canvas, {}) },
+    blocks,
+    connections,
+    lists,
+  };
+}
+
+function savePlannerMap(id, input) {
+  const existing = db.prepare("SELECT id FROM planner_maps WHERE id = ?").get(id);
+  if (!existing) throw new HttpError(404, "Mapa nao encontrado.");
+
+  const now = new Date().toISOString();
+  const blocks = Array.isArray(input.blocks) ? input.blocks : [];
+  const connections = Array.isArray(input.connections) ? input.connections : [];
+  const lists = Array.isArray(input.lists) ? input.lists : null;
+  const blockIds = new Set(blocks.map((block) => String(block.id)));
+
+  const updateMap = db.prepare("UPDATE planner_maps SET name = ?, description = ?, canvas = ?, updated_at = ? WHERE id = ?");
+  const upsertBlock = db.prepare(
+    `INSERT INTO planner_blocks (id, map_id, title, description, checklist, checklists, attachments, color, kind, routes, labels, members, start_date, due_date, due_time, recurrence, reminder, completed, list_id, board_order, position_x, position_y, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET
+       title = excluded.title,
+       description = excluded.description,
+       checklist = excluded.checklist,
+       checklists = excluded.checklists,
+       attachments = excluded.attachments,
+       color = excluded.color,
+       kind = excluded.kind,
+       routes = excluded.routes,
+       labels = excluded.labels,
+       members = excluded.members,
+       start_date = excluded.start_date,
+       due_date = excluded.due_date,
+       due_time = excluded.due_time,
+       recurrence = excluded.recurrence,
+       reminder = excluded.reminder,
+       completed = excluded.completed,
+       list_id = excluded.list_id,
+       board_order = excluded.board_order,
+       position_x = excluded.position_x,
+       position_y = excluded.position_y,
+       updated_at = excluded.updated_at`,
+  );
+  const deleteBlock = db.prepare("DELETE FROM planner_blocks WHERE map_id = ? AND id = ?");
+  const insertConnection = db.prepare(
+    "INSERT INTO planner_connections (id, map_id, source_block_id, target_block_id, source_handle, target_handle, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  );
+  const upsertList = db.prepare(
+    `INSERT INTO planner_lists (id, map_id, title, position, created_at, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)
+     ON CONFLICT(id) DO UPDATE SET title = excluded.title, position = excluded.position, updated_at = excluded.updated_at`,
+  );
+  const deleteList = db.prepare("DELETE FROM planner_lists WHERE map_id = ? AND id = ?");
+
+  db.exec("BEGIN");
+  try {
+    updateMap.run(
+      input.name ? String(input.name).trim() : existing.name,
+      String(input.description || "").trim(),
+      JSON.stringify(input.canvas || {}),
+      now,
+      id,
+    );
+
+    const currentBlocks = db.prepare("SELECT id FROM planner_blocks WHERE map_id = ?").all(id);
+    for (const row of currentBlocks) {
+      if (!blockIds.has(String(row.id))) deleteBlock.run(id, row.id);
+    }
+
+    for (const block of blocks) {
+      const blockId = String(block.id || createId("blk"));
+      blockIds.add(blockId);
+      const checklists = Array.isArray(block.checklists) ? block.checklists : [];
+      // Mantem o checklist antigo em sincronia (achatado) para nao quebrar leituras legadas.
+      const flatChecklist = checklists.flatMap((group) =>
+        Array.isArray(group.items) ? group.items : [],
+      );
+      upsertBlock.run(
+        blockId,
+        id,
+        String(block.title || ""),
+        String(block.description || ""),
+        JSON.stringify(Array.isArray(block.checklist) ? block.checklist : flatChecklist),
+        JSON.stringify(checklists),
+        JSON.stringify(Array.isArray(block.attachments) ? block.attachments : []),
+        String(block.color || "#2f6df6"),
+        block.kind === "anchor" ? "anchor" : "block",
+        JSON.stringify(Array.isArray(block.routes) ? block.routes : []),
+        JSON.stringify(Array.isArray(block.labels) ? block.labels : []),
+        JSON.stringify(Array.isArray(block.members) ? block.members : []),
+        block.startDate ? String(block.startDate) : null,
+        block.dueDate ? String(block.dueDate) : null,
+        block.dueTime ? String(block.dueTime) : null,
+        String(block.recurrence || "none"),
+        String(block.reminder || "none"),
+        block.completed ? 1 : 0,
+        block.listId ? String(block.listId) : null,
+        Number(block.boardOrder ?? 0),
+        Number(block.positionX ?? block.position_x ?? 0),
+        Number(block.positionY ?? block.position_y ?? 0),
+        block.createdAt || now,
+        now,
+      );
+    }
+
+    if (lists) {
+      const listIds = new Set(lists.map((list) => String(list.id)));
+      const currentLists = db.prepare("SELECT id FROM planner_lists WHERE map_id = ?").all(id);
+      for (const row of currentLists) {
+        if (!listIds.has(String(row.id))) deleteList.run(id, row.id);
+      }
+      lists.forEach((list, index) => {
+        upsertList.run(
+          String(list.id || createId("lst")),
+          id,
+          String(list.title || ""),
+          Number(list.position ?? index),
+          list.createdAt || now,
+          now,
+        );
+      });
+    }
+
+    db.prepare("DELETE FROM planner_connections WHERE map_id = ?").run(id);
+    for (const connection of connections) {
+      const source = String(connection.source || connection.sourceBlockId || "");
+      const target = String(connection.target || connection.targetBlockId || "");
+      if (!source || !target || !blockIds.has(source) || !blockIds.has(target)) continue;
+      insertConnection.run(
+        connection.id || createId("cxn"),
+        id,
+        source,
+        target,
+        connection.sourceHandle != null ? String(connection.sourceHandle) : null,
+        connection.targetHandle != null ? String(connection.targetHandle) : null,
+        now,
+      );
+    }
+
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+
+  return getPlannerMap(id);
+}
+
+function deletePlannerMap(id) {
+  const result = db.prepare("DELETE FROM planner_maps WHERE id = ?").run(id);
+  if (result.changes === 0) throw new HttpError(404, "Mapa nao encontrado.");
+}
+
+function listBlockComments(blockId) {
+  return db
+    .prepare(
+      "SELECT id, block_id AS blockId, author, body, kind, created_at AS createdAt FROM planner_comments WHERE block_id = ? ORDER BY created_at",
+    )
+    .all(blockId);
+}
+
+function addBlockComment(blockId, input) {
+  const block = db.prepare("SELECT id, map_id AS mapId FROM planner_blocks WHERE id = ?").get(blockId);
+  if (!block) throw new HttpError(404, "Cartao nao encontrado. Salve o mapa antes de comentar.");
+  const body = String(input.body || "").trim();
+  if (!body) throw new HttpError(400, "Comentario vazio.");
+  const now = new Date().toISOString();
+  const id = createId("cmt");
+  db.prepare(
+    "INSERT INTO planner_comments (id, map_id, block_id, author, body, kind, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+  ).run(id, block.mapId, blockId, String(input.author || "Você").trim() || "Você", body, "comment", now);
+  return { comment: { id, blockId, author: String(input.author || "Você"), body, kind: "comment", createdAt: now } };
+}
+
+function listPlannerCollaborators() {
+  const users = db
+    .prepare("SELECT id, name, role FROM platform_users ORDER BY name")
+    .all();
+
+  return users.map((user) => {
+    const execution = db
+      .prepare(
+        `SELECT e.id AS executionId, e.map_id AS mapId, m.name AS mapName, e.status, e.updated_at AS updatedAt
+         FROM planner_executions e
+         JOIN planner_maps m ON m.id = e.map_id
+         WHERE e.collaborator_id = ? AND e.status = 'active'
+         ORDER BY e.updated_at DESC LIMIT 1`,
+      )
+      .get(user.id);
+
+    return {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+      currentExecutionId: execution?.executionId || null,
+      currentMapId: execution?.mapId || null,
+      currentMapName: execution?.mapName || null,
+    };
+  });
+}
+
+function resolvePlannerPersonSummary(person) {
+  if (!person?.id) return null;
+  const execution = getActiveExecutionForPerson(person.id);
+  return {
+    id: person.id,
+    personId: person.id,
+    name: person.name,
+    role: "collaborator",
+    currentExecutionId: execution?.id || null,
+    currentMapId: execution?.mapId || null,
+    currentMapName: execution?.mapName || null,
+  };
+}
+
+function getActiveExecutionForPerson(personId) {
+  return db
+    .prepare(
+      `SELECT e.id, e.map_id AS mapId, m.name AS mapName, e.status, e.updated_at AS updatedAt
+       FROM planner_executions e
+       JOIN planner_maps m ON m.id = e.map_id
+       WHERE e.person_id = ? AND e.status = 'active'
+       ORDER BY e.updated_at DESC LIMIT 1`,
+    )
+    .get(personId);
+}
+
+function getExecutionPayloadForPerson(personId) {
+  const execution = getActiveExecutionForPerson(personId);
+  if (!execution) {
+    return { execution: null, collaborator: { personId }, blocks: [], connections: [] };
+  }
+  return getPlannerExecution(execution.id);
+}
+
+function resolvePlannerCollaboratorForPerson(person) {
+  return resolvePlannerPersonSummary(person);
+}
+
+function createPlannerExecution(input) {
+  const mapId = required(input.mapId, "Mapa");
+  const personId = required(input.personId || input.collaboratorPersonId, "Pessoa (personId)");
+
+  const person = db.prepare("SELECT id, name, status FROM people WHERE id = ?").get(personId);
+  if (!person || person.status !== "ACTIVE") throw new HttpError(404, "Pessoa não encontrada ou inativa.");
+
+  const map = db.prepare("SELECT id FROM planner_maps WHERE id = ?").get(mapId);
+  if (!map) throw new HttpError(404, "Mapa nao encontrado.");
+
+  let collaboratorId = input.collaboratorId ? String(input.collaboratorId) : null;
+  if (!collaboratorId) {
+    const legacy = db.prepare("SELECT u.id FROM platform_users u INNER JOIN people p ON lower(p.email) = lower(u.email) WHERE p.id = ? LIMIT 1").get(personId);
+    collaboratorId = legacy?.id || `legacy-person-${personId}`;
+  }
+
+  const now = new Date().toISOString();
+  const executionId = createId("exec");
+
+  db.exec("BEGIN");
+  try {
+    db.prepare(
+      "UPDATE planner_executions SET status = 'finished', updated_at = ? WHERE person_id = ? AND status = 'active'",
+    ).run(now, personId);
+
+    db.prepare(
+      "INSERT INTO planner_executions (id, map_id, collaborator_id, person_id, status, created_at, updated_at) VALUES (?, ?, ?, ?, 'active', ?, ?)",
+    ).run(executionId, mapId, collaboratorId, personId, now, now);
+
+    const blocks = db.prepare("SELECT id FROM planner_blocks WHERE map_id = ?").all(mapId);
+    const insertExecBlock = db.prepare(
+      "INSERT INTO planner_execution_blocks (id, execution_id, block_id, status, updated_at) VALUES (?, ?, ?, 'not_started', ?)",
+    );
+    for (const block of blocks) {
+      insertExecBlock.run(createId("eb"), executionId, block.id, now);
+    }
+    db.exec("COMMIT");
+  } catch (error) {
+    db.exec("ROLLBACK");
+    throw error;
+  }
+
+  return getPlannerExecution(executionId);
+}
+
+function getPlannerExecution(executionId) {
+  const execution = db
+    .prepare(
+      `SELECT e.id, e.map_id AS mapId, e.collaborator_id AS collaboratorId, e.person_id AS personId, e.status,
+              e.created_at AS createdAt, e.updated_at AS updatedAt,
+              m.name AS mapName, m.description AS mapDescription,
+              COALESCE(p.name, u.name) AS collaboratorName
+       FROM planner_executions e
+       JOIN planner_maps m ON m.id = e.map_id
+       LEFT JOIN people p ON p.id = e.person_id
+       LEFT JOIN platform_users u ON u.id = e.collaborator_id
+       WHERE e.id = ?`,
+    )
+    .get(executionId);
+  if (!execution) throw new HttpError(404, "Execucao nao encontrada.");
+
+  const blocks = db
+    .prepare(
+      `SELECT eb.id AS executionBlockId, eb.status, eb.updated_at AS updatedAt,
+              b.id AS blockId, b.title, b.description, b.checklist, b.attachments, b.color,
+              b.position_x AS positionX, b.position_y AS positionY
+       FROM planner_execution_blocks eb
+       JOIN planner_blocks b ON b.id = eb.block_id
+       WHERE eb.execution_id = ?
+       ORDER BY b.created_at`,
+    )
+    .all(executionId)
+    .map((row) => ({
+      executionBlockId: row.executionBlockId,
+      status: row.status,
+      updatedAt: row.updatedAt,
+      blockId: row.blockId,
+      title: row.title,
+      description: row.description,
+      checklist: safeJsonParse(row.checklist, []),
+      attachments: safeJsonParse(row.attachments, []),
+      color: row.color,
+      positionX: row.positionX,
+      positionY: row.positionY,
+    }));
+
+  const connections = db
+    .prepare("SELECT id, source_block_id AS source, target_block_id AS target FROM planner_connections WHERE map_id = ?")
+    .all(execution.mapId);
+
+  return { execution, blocks, connections };
+}
+
+function getCollaboratorExecution(collaboratorId) {
+  const execution = db
+    .prepare(
+      "SELECT id FROM planner_executions WHERE collaborator_id = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1",
+    )
+    .get(collaboratorId);
+
+  if (!execution) {
+    const collaborator = db.prepare("SELECT id, name FROM platform_users WHERE id = ?").get(collaboratorId);
+    if (!collaborator) throw new HttpError(404, "Colaborador nao encontrado.");
+    return { execution: null, collaborator, blocks: [], connections: [] };
+  }
+
+  return getPlannerExecution(execution.id);
+}
+
+function updateExecutionBlock(executionBlockId, input) {
+  const allowed = ["not_started", "in_progress", "done", "cancelled"];
+  const status = String(input.status || "");
+  if (!allowed.includes(status)) throw new HttpError(400, "Status invalido.");
+
+  const now = new Date().toISOString();
+  const result = db
+    .prepare("UPDATE planner_execution_blocks SET status = ?, updated_at = ? WHERE id = ?")
+    .run(status, now, executionBlockId);
+  if (result.changes === 0) throw new HttpError(404, "Bloco de execucao nao encontrado.");
+
+  const execRow = db
+    .prepare("SELECT execution_id FROM planner_execution_blocks WHERE id = ?")
+    .get(executionBlockId);
+  db.prepare("UPDATE planner_executions SET updated_at = ? WHERE id = ?").run(now, execRow.execution_id);
+
+  return getPlannerExecution(execRow.execution_id);
 }
 

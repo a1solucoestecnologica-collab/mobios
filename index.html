@@ -1,16 +1,21 @@
 <!doctype html>
+<!-- MÖBI OS Shell — Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md -->
 <html lang="pt-BR">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Moble Tools | Cadastro de Ferramentas</title>
-    <link rel="stylesheet" href="./styles.css?v=20260703-tool-owner" />
+    <title>MÖBI Tools | Cadastro de Ferramentas</title>
+    <link rel="stylesheet" href="./styles.css?v=20260709-mobi6" />
+    <link rel="stylesheet" href="./planner/dist/planner.css?v=20260707-cal" />
+    <link rel="stylesheet" href="./ponto/dist/ponto.css?v=20260710-time10" />
+    <link rel="stylesheet" href="./admin/dist/admin.css?v=20260710-admin11" />
+    <link rel="stylesheet" href="./portal/dist/portal.css?v=20260710-portal12" />
   </head>
   <body>
     <section class="login-screen hidden" id="loginScreen">
       <form class="login-card" id="loginForm">
         <div>
-          <p class="eyebrow">Moble Tools</p>
+          <p class="eyebrow">MÖBI Tools</p>
           <h1>Acesso da plataforma</h1>
           <p>Entre para utilizar o cadastro, listas requeridas e painel de colaboradores.</p>
         </div>
@@ -28,13 +33,76 @@
       </form>
     </section>
 
+    <section class="launcher hidden" id="launcherScreen">
+      <div class="launcher-inner">
+        <header class="launcher-head">
+          <p class="launcher-eyebrow">MÖBI</p>
+          <h1>Escolha um aplicativo</h1>
+          <p class="launcher-sub">Selecione o setor que deseja acessar.</p>
+        </header>
+        <div class="launcher-grid">
+          <button class="launcher-app" type="button" data-launch="tools">
+            <span class="launcher-icon launcher-icon-tools" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14.7 6.3a4 4 0 0 0-5.4 5.3L3 18l3 3 6.4-6.3a4 4 0 0 0 5.3-5.4l-2.6 2.6-2.3-.6-.6-2.3z" />
+              </svg>
+            </span>
+            <span class="launcher-label">MÖBI Tools</span>
+          </button>
+
+          <button class="launcher-app" type="button" data-launch="planner">
+            <span class="launcher-icon launcher-icon-planner" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2" />
+                <path d="M8 4v16M14 4v9" />
+              </svg>
+            </span>
+            <span class="launcher-label">MÖBI WorkMaps</span>
+          </button>
+
+          <button class="launcher-app" type="button" data-launch="ponto">
+            <span class="launcher-icon launcher-icon-ponto" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="9" />
+                <path d="M12 7v5l3 2" />
+              </svg>
+            </span>
+            <span class="launcher-label">MÖBI Time</span>
+          </button>
+
+          <button class="launcher-app" type="button" data-launch="portal">
+            <span class="launcher-icon launcher-icon-portal" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4 20c0-4 3.6-6 8-6s8 2 8 6" />
+              </svg>
+            </span>
+            <span class="launcher-label">Portal do Colaborador</span>
+          </button>
+
+          <button class="launcher-app" type="button" data-launch="admin">
+            <span class="launcher-icon launcher-icon-admin" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="46" height="46" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 3l8 4v6c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7z" />
+                <path d="M9 12l2 2 4-4" />
+              </svg>
+            </span>
+            <span class="launcher-label">MÖBI Admin</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
     <div class="app-shell">
       <header class="app-header">
         <button class="header-icon" type="button" id="menuToggleBtn" aria-label="Menu lateral">☰</button>
-        <div class="header-brand">
-          <strong>Möble</strong>
-          <span>Tools</span>
-        </div>
+        <button class="header-brand" type="button" id="brandHome" title="Ir para a tela de aplicativos">
+          <strong>MÖBI</strong>
+          <span id="brandSuffix">Tools</span>
+        </button>
+        <button class="button secondary back-to-apps" type="button" id="backToApps">
+          <span aria-hidden="true">◀</span> Aplicativos
+        </button>
         <div class="global-search">
           <span>⌕</span>
           <input type="search" placeholder="Buscar preparação, ferramenta ou responsável..." />
@@ -51,7 +119,7 @@
       </header>
 
       <aside class="sidebar" aria-label="Navegacao principal">
-        <nav class="nav-list">
+        <nav class="nav-list" id="toolsNavList">
           <button class="nav-item" type="button">
             <span class="nav-icon">▦</span>
             <span>Dashboard</span>
@@ -106,13 +174,120 @@
           </button>
         </nav>
 
-        <div class="plan-card">
-          <div class="plan-icon">◇</div>
-          <div>
-            <strong>Plano Pro</strong>
-            <span>Marcenaria Nova Era</span>
+        <nav class="nav-list hidden" id="pontoNavList" aria-label="Menu MÖBI Time">
+          <button class="nav-item active" type="button" data-ponto-view="dashboard">
+            <span class="nav-icon">▦</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="settings">
+            <span class="nav-icon">⚙</span>
+            <span>Configurações</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="schedules">
+            <span class="nav-icon">◷</span>
+            <span>Jornadas</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="employeeStatus">
+            <span class="nav-icon">◎</span>
+            <span>Status</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="shiftPlans">
+            <span class="nav-icon">◫</span>
+            <span>Escalas</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="adjustments">
+            <span class="nav-icon">✎</span>
+            <span>Solicitações</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="competences">
+            <span class="nav-icon">▣</span>
+            <span>Competências</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="notices">
+            <span class="nav-icon">🔔</span>
+            <span>Comunicados</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="documents">
+            <span class="nav-icon">📄</span>
+            <span>Documentos</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="employees">
+            <span class="nav-icon">○</span>
+            <span>Gestão operacional</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="records">
+            <span class="nav-icon">▥</span>
+            <span>Registros</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="timesheet">
+            <span class="nav-icon">▤</span>
+            <span>Espelho de Ponto</span>
+          </button>
+          <button class="nav-item" type="button" data-ponto-view="reports">
+            <span class="nav-icon">▧</span>
+            <span>Relatórios</span>
+          </button>
+        </nav>
+
+        <nav class="nav-list hidden" id="adminNavList" aria-label="Menu MÖBI Admin">
+          <button class="nav-item active" type="button" data-admin-view="dashboard">
+            <span class="nav-icon">▦</span>
+            <span>Dashboard</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="people">
+            <span class="nav-icon">◎</span>
+            <span>Pessoas</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="roles">
+            <span class="nav-icon">▣</span>
+            <span>Funções</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="permissions">
+            <span class="nav-icon">◈</span>
+            <span>Permissões</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="departments">
+            <span class="nav-icon">▤</span>
+            <span>Departamentos</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="applications">
+            <span class="nav-icon">▧</span>
+            <span>Aplicativos</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="audit">
+            <span class="nav-icon">▥</span>
+            <span>Auditoria</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="sessions">
+            <span class="nav-icon">◷</span>
+            <span>Sessões</span>
+          </button>
+          <button class="nav-item" type="button" data-admin-view="settings">
+            <span class="nav-icon">⚙</span>
+            <span>Configurações</span>
+          </button>
+
+          <div class="admin-nav-divider" role="separator" aria-hidden="true"></div>
+
+          <div class="admin-nav-system" id="adminNavSystem">
+            <button class="nav-item nav-group-toggle" type="button" id="adminSystemMenuToggle" aria-expanded="false" aria-controls="adminSystemSubmenu">
+              <span class="nav-icon">◇</span>
+              <span>Sistema</span>
+              <span class="nav-chevron" aria-hidden="true">▸</span>
+            </button>
+            <div class="admin-nav-sublist" id="adminSystemSubmenu" hidden>
+              <span class="admin-nav-sublist-label">Diagnóstico</span>
+              <button class="nav-item nav-subitem" type="button" data-admin-view="users" data-admin-technical="true">
+                <span class="nav-icon">○</span>
+                <span>Usuários (legado)</span>
+              </button>
+              <button class="nav-item nav-subitem" type="button" data-admin-view="platform" data-admin-technical="true">
+                <span class="nav-icon">◈</span>
+                <span>Arquitetura da Platform</span>
+              </button>
+            </div>
           </div>
-        </div>
+        </nav>
       </aside>
 
       <main class="workspace">
@@ -277,6 +452,25 @@
             <button class="button primary" type="button" id="emptyNewWorkBoxBtn">Criar caixa</button>
           </div>
         </section>
+      </main>
+
+      <main class="planner-shell hidden" id="plannerShell">
+        <div class="planner-body">
+          <div class="planner-root" id="plannerAdminRoot"></div>
+          <div class="planner-root hidden" id="plannerCollabRoot"></div>
+        </div>
+      </main>
+
+      <main class="ponto-shell hidden" id="pontoShell">
+        <div class="ponto-root" id="pontoRoot"></div>
+      </main>
+
+      <main class="admin-shell hidden" id="adminShell">
+        <div class="admin-root" id="adminRoot"></div>
+      </main>
+
+      <main class="portal-shell hidden" id="portalShell">
+        <div class="portal-root" id="portalRoot"></div>
       </main>
     </div>
 
@@ -839,6 +1033,10 @@
 
     <div class="toast hidden" id="toast" role="status"></div>
 
-    <script type="module" src="./app.js?v=20260703-tool-owner"></script>
+    <script type="module" src="./planner/dist/planner.js?v=20260707-cal"></script>
+    <script type="module" src="./ponto/dist/ponto.js?v=20260710-time10"></script>
+    <script type="module" src="./admin/dist/admin.js?v=20260710-admin11"></script>
+    <script type="module" src="./portal/dist/portal.js?v=20260710-portal12"></script>
+    <script type="module" src="./app.js?v=20260710-homolog1"></script>
   </body>
 </html>

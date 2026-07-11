@@ -1,0 +1,67 @@
+/* MÖBI Time — complementos ao design system global */
+
+.ponto-error {
+  color: #b42318;
+  margin: 0;
+}
+
+.ponto-panel-msg {
+  padding: 0 20px 16px;
+}
+
+.ponto-panel-form {
+  padding: 0 20px 20px;
+}
+
+.ponto-panel-metrics {
+  padding: 0 20px;
+  margin-bottom: 8px;
+}
+
+.ponto-thumb {
+  width: 40px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.status-pill.ok {
+  background: rgba(34, 139, 87, 0.12);
+  color: #1a6b42;
+}
+
+.status-pill.warn {
+  background: rgba(217, 130, 43, 0.15);
+  color: #9a5a14;
+}
+
+.status-pill.muted {
+  background: #eef1f3;
+  color: #6b7785;
+}
+
+.row-warn {
+  background: rgba(217, 130, 43, 0.06);
+}
+
+.ponto-report-preview {
+  margin: 0 20px 20px;
+  background: #f8fafb;
+  border-radius: 8px;
+  padding: 12px;
+  overflow: auto;
+  max-height: 400px;
+  font-size: 12px;
+}
+
+.ponto-saved {
+  color: #1a6b42;
+  margin: 0;
+}

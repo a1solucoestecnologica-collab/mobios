@@ -1,3 +1,5 @@
+/* MÖBI OS — Design System global (Shell + classes compartilhadas).
+   Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md */
 :root {
   color-scheme: light;
   --background: #f8fafb;
@@ -16,6 +18,10 @@
   --radius: 12px;
   --shadow-sm: 0 1px 2px rgba(20, 28, 35, 0.04);
   --shadow-md: 0 12px 28px rgba(20, 28, 35, 0.08);
+  --moble-launcher-background:
+    radial-gradient(1200px 600px at 15% 10%, rgba(217, 130, 43, 0.35), transparent 60%),
+    radial-gradient(1000px 620px at 85% 90%, rgba(65, 106, 115, 0.45), transparent 60%),
+    linear-gradient(140deg, #2b3a41 0%, #1b2429 100%);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 }
 
@@ -148,6 +154,24 @@ textarea {
   min-width: max-content;
   font-size: 18px;
   letter-spacing: -0.02em;
+  border: none;
+  background: transparent;
+  padding: 4px 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.header-brand:hover {
+  background: var(--muted);
+}
+
+.back-to-apps {
+  margin-left: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
 }
 
 .header-brand strong {
@@ -276,56 +300,19 @@ textarea {
   color: inherit;
 }
 
-.plan-card {
-  margin-top: auto;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  background: var(--card);
-  padding: 12px;
-}
-
-.plan-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: grid;
-  place-items: center;
-  background: #eef5f6;
-  color: var(--primary);
-  font-weight: 800;
-}
-
-.plan-card strong,
-.plan-card span {
-  display: block;
-  line-height: 1.2;
-}
-
-.plan-card strong {
-  font-size: 14px;
-}
-
-.plan-card span {
-  margin-top: 2px;
-  color: var(--muted-foreground);
-  font-size: 12px;
-}
-
 .workspace {
   min-width: 0;
-  padding: 30px 32px;
+  min-height: 0;
+  overflow: auto;
+  background: var(--card);
+  padding: 24px 28px 32px;
   display: grid;
-  gap: 24px;
+  gap: 20px;
   align-content: start;
 }
 
 .topbar {
-  max-width: 1180px;
   width: 100%;
-  margin: 0 auto;
   display: flex;
   justify-content: space-between;
   gap: 20px;
@@ -395,23 +382,23 @@ textarea {
 
 .metrics-grid,
 .panel {
-  max-width: 1180px;
   width: 100%;
-  margin: 0 auto;
 }
 
 .metrics-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 16px;
+  gap: 20px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--border);
 }
 
 .metric-card {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: var(--shadow-sm);
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none;
 }
 
 .metric-card span {
@@ -456,19 +443,20 @@ textarea {
 }
 
 .panel {
-  background: var(--card);
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  box-shadow: var(--shadow-sm);
-  overflow: hidden;
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
 }
 
 .panel-header {
-  padding: 20px;
+  padding: 0 0 16px;
   display: flex;
   justify-content: space-between;
   gap: 16px;
   align-items: flex-start;
+  border-bottom: 1px solid var(--border);
 }
 
 .panel-header h2 {
@@ -2327,8 +2315,8 @@ label {
   }
 
   .metric-card {
-    padding: 14px;
-    border-radius: 14px;
+    padding: 0;
+    border-radius: 0;
   }
 
   .metric-card::before {
@@ -2342,11 +2330,11 @@ label {
   }
 
   .panel {
-    border-radius: 14px;
+    border-radius: 0;
   }
 
   .panel-header {
-    padding: 16px;
+    padding: 0 0 14px;
     gap: 14px;
   }
 
@@ -2713,5 +2701,428 @@ label {
 
   .permission-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Seletor de produto (MÖBI Tools / MÖBI WorkMaps) + shell do WorkMaps
+--------------------------------------------------------------------------- */
+.product-switch {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+
+.product-tab {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.product-tab.active {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.planner-shell {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  padding: 30px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  align-content: start;
+}
+
+.planner-shell.hidden {
+  display: none;
+}
+
+body.product-planner .sidebar,
+body.product-planner .workspace {
+  display: none;
+}
+
+body.product-planner .app-shell {
+  grid-template-columns: 1fr;
+}
+
+.ponto-shell {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--card);
+  padding: 24px 28px 32px;
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.ponto-shell.hidden {
+  display: none;
+}
+
+.ponto-root {
+  display: contents;
+}
+
+body.product-ponto .workspace,
+body.product-ponto .planner-shell {
+  display: none;
+}
+
+body.product-ponto #toolsNavList {
+  display: none;
+}
+
+body.product-ponto #pontoNavList {
+  display: grid;
+}
+
+body.product-ponto .global-search,
+body.product-ponto .mobile-tabbar {
+  display: none;
+}
+
+/* Sem a busca central, o chip do usuário precisa ir para o canto direito. */
+body.product-ponto .app-header .notification-dot {
+  margin-left: auto;
+}
+
+.admin-shell {
+  grid-column: 2;
+  grid-row: 2;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+  background: var(--card);
+  padding: 24px 28px 32px;
+  display: grid;
+  gap: 20px;
+  align-content: start;
+}
+
+.admin-shell.hidden {
+  display: none;
+}
+
+.admin-root {
+  display: contents;
+}
+
+body.product-admin .workspace,
+body.product-admin .planner-shell,
+body.product-admin .ponto-shell {
+  display: none;
+}
+
+body.product-admin #toolsNavList,
+body.product-admin #pontoNavList {
+  display: none;
+}
+
+body.product-admin #adminNavList {
+  display: grid;
+}
+
+body.product-admin .global-search,
+body.product-admin .mobile-tabbar {
+  display: none;
+}
+
+body.product-admin .app-header .notification-dot {
+  margin-left: auto;
+}
+
+.portal-shell {
+  grid-column: 1 / -1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.portal-shell.hidden {
+  display: none !important;
+}
+
+.portal-root {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.product-portal .sidebar {
+  display: none;
+}
+
+body.product-portal .app-shell {
+  grid-template-columns: 1fr;
+}
+
+body.product-portal .workspace,
+body.product-portal .planner-shell,
+body.product-portal .ponto-shell,
+body.product-portal .admin-shell {
+  display: none !important;
+}
+
+body.product-portal .portal-shell {
+  display: flex !important;
+}
+
+body.product-portal .global-search,
+body.product-portal .mobile-tabbar {
+  display: none;
+}
+
+body.product-portal .app-header .notification-dot {
+  display: none;
+}
+
+.launcher-icon-portal {
+  background: linear-gradient(145deg, #14b8a6 0%, #0d9488 100%);
+  color: #fff;
+}
+
+.admin-nav-divider {
+  height: 1px;
+  margin: 10px 12px;
+  background: var(--border);
+}
+
+.admin-nav-system {
+  display: grid;
+  gap: 2px;
+}
+
+.admin-nav-system .nav-group-toggle {
+  justify-content: flex-start;
+}
+
+.admin-nav-system .nav-chevron {
+  margin-left: auto;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  transition: transform 0.15s ease;
+}
+
+.admin-nav-system.is-open .nav-chevron {
+  transform: rotate(90deg);
+}
+
+.admin-nav-sublist {
+  display: none;
+  gap: 2px;
+  padding: 0 0 4px 10px;
+}
+
+.admin-nav-system.is-open .admin-nav-sublist {
+  display: grid;
+}
+
+.admin-nav-sublist-label {
+  padding: 8px 12px 4px;
+  color: var(--muted-foreground);
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.admin-nav-system .nav-subitem {
+  min-height: 38px;
+  padding-left: 28px;
+  font-size: 13px;
+}
+
+.launcher-icon-ponto {
+  background: linear-gradient(145deg, #3d6b8a 0%, #2a4f68 100%);
+  color: #fff;
+}
+
+.launcher-icon-admin {
+  background: linear-gradient(145deg, #4a5568 0%, #2d3748 100%);
+  color: #fff;
+}
+
+.planner-modes {
+  display: flex;
+  gap: 6px;
+  padding: 4px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.planner-mode {
+  border: none;
+  background: transparent;
+  color: var(--muted-foreground);
+  font: inherit;
+  font-weight: 600;
+  font-size: 13px;
+  padding: 8px 18px;
+  border-radius: 9px;
+  cursor: pointer;
+}
+
+.planner-mode.active {
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: var(--shadow-sm);
+}
+
+.planner-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.planner-root {
+  height: 100%;
+}
+
+.planner-root.hidden {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .product-switch {
+    order: 3;
+  }
+
+  .planner-shell {
+    padding: 14px 12px;
+  }
+}
+
+/* =========================================================
+   Launcher (tela de aplicativos, estilo iCloud / iOS)
+   ========================================================= */
+.launcher {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+  background: var(--moble-launcher-background);
+  overflow-y: auto;
+}
+
+/* Quando o launcher esta aberto, escondemos a interface por baixo. */
+body.launcher-open .app-shell {
+  display: none;
+}
+
+.launcher-inner {
+  width: min(720px, 100%);
+  text-align: center;
+  color: #fff;
+}
+
+.launcher-head {
+  margin-bottom: 42px;
+}
+
+.launcher-eyebrow {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.28em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.launcher-head h1 {
+  margin: 8px 0 6px;
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.launcher-sub {
+  margin: 0;
+  font-size: 15px;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.launcher-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 152px));
+  gap: 30px 34px;
+  justify-content: center;
+}
+
+.launcher-app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: #fff;
+}
+
+.launcher-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 108px;
+  height: 108px;
+  border-radius: 26px;
+  color: #fff;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.32);
+  transition: transform 0.18s ease, box-shadow 0.18s ease;
+}
+
+.launcher-app:hover .launcher-icon {
+  transform: translateY(-6px) scale(1.03);
+  box-shadow: 0 22px 42px rgba(0, 0, 0, 0.4);
+}
+
+.launcher-app:active .launcher-icon {
+  transform: translateY(-2px) scale(0.99);
+}
+
+.launcher-icon-tools {
+  background: linear-gradient(150deg, #f0a350 0%, #d9822b 55%, #b5651d 100%);
+}
+
+.launcher-icon-planner {
+  background: linear-gradient(150deg, #5b8892 0%, #416a73 55%, #2f4f56 100%);
+}
+
+.launcher-label {
+  font-size: 15px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
+}
+
+@media (max-width: 520px) {
+  .launcher-head h1 {
+    font-size: 24px;
+  }
+
+  .launcher-icon {
+    width: 92px;
+    height: 92px;
+    border-radius: 22px;
   }
 }

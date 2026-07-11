@@ -1,3 +1,5 @@
+// MÖBI OS — Shell (orquestração de UI, launcher e troca de aplicativos).
+// Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md
 let state = { categories: [], tools: [], jobs: [], users: [], workBoxes: [], separationTemplates: [] };
 let currentUser = null;
 
@@ -36,6 +38,9 @@ const els = {
   navItems: document.querySelectorAll(".nav-item"),
   menuToggleBtn: document.querySelector("#menuToggleBtn"),
   loginScreen: document.querySelector("#loginScreen"),
+  launcherScreen: document.querySelector("#launcherScreen"),
+  brandHome: document.querySelector("#brandHome"),
+  backToApps: document.querySelector("#backToApps"),
   loginForm: document.querySelector("#loginForm"),
   loginEmail: document.querySelector("#loginEmail"),
   loginPassword: document.querySelector("#loginPassword"),
@@ -202,6 +207,8 @@ function bindEvents() {
       switchView(item.dataset.mobileView);
     });
   });
+
+  setupPlannerNavigation();
 
   els.requiredTabButtons.forEach((button) => {
     button.addEventListener("click", () => switchRequiredDialogTab(button.dataset.requiredTab));
@@ -383,6 +390,8 @@ async function logout() {
 
 function showLogin(message = "") {
   document.body.classList.add("auth-locked");
+  els.launcherScreen?.classList.add("hidden");
+  document.body.classList.remove("launcher-open");
   els.loginScreen.classList.remove("hidden");
   if (message) {
     els.loginError.textContent = message;
@@ -396,13 +405,205 @@ function showApp() {
   document.body.classList.remove("auth-locked");
   els.loginScreen.classList.add("hidden");
   renderCurrentUser();
+  showLauncher();
 }
 
 function renderCurrentUser() {
-  const displayUser = currentUser || { name: "Moble", role: "Marcenaria" };
+  const displayUser = currentUser || { name: "MÖBI", role: "Marcenaria" };
   els.currentUserAvatar.textContent = getInitials(displayUser.name);
   els.currentUserName.textContent = displayUser.name;
   els.currentUserRole.textContent = roleLabels[displayUser.role] || displayUser.role;
+}
+
+let plannerMounted = { admin: false, collaborator: false };
+let activePlannerMode = "admin";
+let pontoMounted = false;
+let adminMounted = false;
+let portalMounted = false;
+
+function setupPlannerNavigation() {
+  const modeButtons = document.querySelectorAll(".planner-mode");
+
+  modeButtons.forEach((button) => {
+    button.addEventListener("click", () => switchPlannerMode(button.dataset.plannerMode));
+  });
+
+  document.querySelectorAll(".launcher-app").forEach((app) => {
+    app.addEventListener("click", () => openProduct(app.dataset.launch));
+  });
+
+  document.querySelectorAll("[data-ponto-view]").forEach((button) => {
+    button.addEventListener("click", () => switchPontoView(button.dataset.pontoView));
+  });
+
+  document.querySelectorAll("[data-admin-view]").forEach((button) => {
+    button.addEventListener("click", () => switchAdminView(button.dataset.adminView));
+  });
+
+  document.getElementById("adminSystemMenuToggle")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    toggleAdminSystemMenu();
+  });
+
+  els.brandHome?.addEventListener("click", showLauncher);
+  els.backToApps?.addEventListener("click", showLauncher);
+}
+
+function switchPontoView(view) {
+  document.querySelectorAll("[data-ponto-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.pontoView === view);
+  });
+  window.MoobleTime?.navigate?.(view);
+}
+
+function toggleAdminSystemMenu(forceOpen) {
+  const wrap = document.getElementById("adminNavSystem");
+  const submenu = document.getElementById("adminSystemSubmenu");
+  const toggle = document.getElementById("adminSystemMenuToggle");
+  if (!wrap || !submenu || !toggle) return;
+
+  const shouldOpen = typeof forceOpen === "boolean" ? forceOpen : !wrap.classList.contains("is-open");
+  wrap.classList.toggle("is-open", shouldOpen);
+  submenu.hidden = !shouldOpen;
+  toggle.setAttribute("aria-expanded", String(shouldOpen));
+}
+
+const ADMIN_SYSTEM_VIEWS = new Set(["platform", "users"]);
+
+function switchPortalView(view) {
+  window.MooblePortal?.navigate?.(view);
+}
+
+function switchAdminView(view) {
+  document.querySelectorAll("[data-admin-view]").forEach((button) => {
+    button.classList.toggle("active", button.dataset.adminView === view);
+  });
+  toggleAdminSystemMenu(ADMIN_SYSTEM_VIEWS.has(view));
+  window.MoobleAdmin?.navigate?.(view);
+}
+
+// Tela de aplicativos (estilo iCloud): primeira coisa apos o login.
+function showLauncher() {
+  els.launcherScreen?.classList.remove("hidden");
+  document.body.classList.add("launcher-open");
+  document.body.classList.remove("sidebar-open");
+}
+
+// Escolha de um app no launcher: entra no produto e fecha a tela de apps.
+function openProduct(product) {
+  els.launcherScreen?.classList.add("hidden");
+  document.body.classList.remove("launcher-open");
+  switchProduct(product || "tools");
+}
+
+function switchProduct(product) {
+  const isPlanner = product === "planner";
+  const isPonto = product === "ponto";
+  const isAdmin = product === "admin";
+  const isPortal = product === "portal";
+  document.body.classList.toggle("product-planner", isPlanner);
+  document.body.classList.toggle("product-ponto", isPonto);
+  document.body.classList.toggle("product-admin", isAdmin);
+  document.body.classList.toggle("product-portal", isPortal);
+
+  const brandSuffix = document.querySelector("#brandSuffix");
+  if (brandSuffix) {
+    if (isPlanner) brandSuffix.textContent = "WorkMaps";
+    else if (isPonto) brandSuffix.textContent = "Time";
+    else if (isAdmin) brandSuffix.textContent = "Admin";
+    else if (isPortal) brandSuffix.textContent = "Portal";
+    else brandSuffix.textContent = "Tools";
+  }
+
+  const plannerShell = document.querySelector("#plannerShell");
+  const pontoShell = document.querySelector("#pontoShell");
+  const adminShell = document.querySelector("#adminShell");
+  const portalShell = document.querySelector("#portalShell");
+  plannerShell?.classList.toggle("hidden", !isPlanner);
+  pontoShell?.classList.toggle("hidden", !isPonto);
+  adminShell?.classList.toggle("hidden", !isAdmin);
+  portalShell?.classList.toggle("hidden", !isPortal);
+  document.querySelector("#toolsNavList")?.classList.toggle("hidden", isPonto || isAdmin || isPortal);
+  document.querySelector("#pontoNavList")?.classList.toggle("hidden", !isPonto);
+  document.querySelector("#adminNavList")?.classList.toggle("hidden", !isAdmin);
+  document.body.classList.remove("sidebar-open");
+
+  if (isPlanner) mountPlanner(activePlannerMode);
+  if (isPonto) {
+    switchPontoView("dashboard");
+    mountPonto();
+  }
+  if (isAdmin) {
+    toggleAdminSystemMenu(false);
+    switchAdminView("dashboard");
+    mountAdmin();
+  }
+  if (isPortal) {
+    switchPortalView("home");
+    mountPortal();
+  }
+}
+
+function switchPlannerMode(mode) {
+  activePlannerMode = mode;
+  document.querySelectorAll(".planner-mode").forEach((button) => {
+    button.classList.toggle("active", button.dataset.plannerMode === mode);
+  });
+  document.querySelector("#plannerAdminRoot")?.classList.toggle("hidden", mode !== "admin");
+  document.querySelector("#plannerCollabRoot")?.classList.toggle("hidden", mode !== "collaborator");
+  mountPlanner(mode);
+}
+
+function mountPlanner(mode) {
+  const planner = window.MooblePlanner;
+  if (!planner) return;
+
+  if (mode === "admin" && !plannerMounted.admin) {
+    const root = document.querySelector("#plannerAdminRoot");
+    if (root) {
+      planner.mountAdmin(root);
+      plannerMounted.admin = true;
+    }
+  }
+
+  if (mode === "collaborator" && !plannerMounted.collaborator) {
+    const root = document.querySelector("#plannerCollabRoot");
+    if (root) {
+      planner.mountCollaborator(root);
+      plannerMounted.collaborator = true;
+    }
+  }
+}
+
+function mountPonto() {
+  const ponto = window.MoobleTime;
+  if (!ponto || pontoMounted) return;
+  const root = document.querySelector("#pontoRoot");
+  if (root) {
+    ponto.mount(root);
+    pontoMounted = true;
+  }
+}
+
+function mountAdmin() {
+  const admin = window.MoobleAdmin;
+  if (!admin || adminMounted) return;
+  const root = document.querySelector("#adminRoot");
+  if (root) {
+    admin.mount(root);
+    adminMounted = true;
+  }
+}
+
+function mountPortal() {
+  const portal = window.MooblePortal;
+  if (!portal || portalMounted) return;
+  const root = document.querySelector("#portalRoot");
+  if (root) {
+    portal.mount(root);
+    portalMounted = true;
+  }
 }
 
 function switchView(view) {
@@ -419,7 +620,7 @@ function switchView(view) {
 function render() {
   renderCurrentUser();
   renderCategoryOptions();
-  renderToolOwnerOptions(document.querySelector("#toolOwner")?.value || "Möble");
+  renderToolOwnerOptions(document.querySelector("#toolOwner")?.value || "MÖBI");
   renderTools();
   renderCategories();
   renderRequiredLists();
@@ -446,20 +647,20 @@ function renderCategoryOptions() {
   updateSubcategoryOptions();
 }
 
-function renderToolOwnerOptions(selectedValue = "Möble") {
+function renderToolOwnerOptions(selectedValue = "MÖBI") {
   const ownerSelect = document.querySelector("#toolOwner");
   if (!ownerSelect) return;
 
   const names = (state.users || [])
     .map((user) => user.name)
     .filter(Boolean);
-  const owners = ["Möble", ...names.filter((name) => name !== "Möble")];
+  const owners = ["MÖBI", ...names.filter((name) => name !== "MÖBI")];
   const uniqueOwners = [...new Set(owners)];
 
   ownerSelect.innerHTML = uniqueOwners
     .map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`)
     .join("");
-  ownerSelect.value = uniqueOwners.includes(selectedValue) ? selectedValue : "Möble";
+  ownerSelect.value = uniqueOwners.includes(selectedValue) ? selectedValue : "MÖBI";
 }
 
 function renderLoanedToOptions() {
@@ -532,7 +733,7 @@ function renderTools() {
             <div class="muted-text">${escapeHtml(tool.subcategory || "Sem subcategoria")}</div>
           </td>
           <td data-label="Categoria">${escapeHtml(category?.name || "Sem categoria")}</td>
-          <td data-label="Proprietario">${escapeHtml(tool.owner || "Möble")}</td>
+          <td data-label="Proprietario">${escapeHtml(tool.owner || "MÖBI")}</td>
           <td data-label="Controle">${controlLabels[tool.controlModel]}${tool.controlModel === "quantity" ? ` (${tool.quantity})` : ""}</td>
           <td data-label="Status">
             <span class="badge ${tool.status}">${statusLabels[tool.status]}</span>
@@ -1784,9 +1985,9 @@ function openToolDialog(tool = null) {
   document.querySelector("#toolId").value = tool?.id || "";
   document.querySelector("#toolName").value = tool?.name || "";
   document.querySelector("#toolCode").value = tool?.internalCode || "";
-  renderToolOwnerOptions(tool?.owner || "Möble");
-  if ([...document.querySelector("#toolOwner").options].some((option) => option.value === (tool?.owner || "Möble"))) {
-    document.querySelector("#toolOwner").value = tool?.owner || "Möble";
+  renderToolOwnerOptions(tool?.owner || "MÖBI");
+  if ([...document.querySelector("#toolOwner").options].some((option) => option.value === (tool?.owner || "MÖBI"))) {
+    document.querySelector("#toolOwner").value = tool?.owner || "MÖBI";
   }
   document.querySelector("#toolCategory").value = tool?.categoryId || state.categories[0]?.id || "";
   updateSubcategoryOptions(tool?.subcategory || "");
@@ -1905,7 +2106,7 @@ async function openDetailDialog(id, focusHistory = false) {
   els.detailCode.textContent = tool.internalCode;
   els.detailStatus.innerHTML = `<span class="badge ${tool.status}">${statusLabels[tool.status] || tool.status}</span>`;
   els.detailCategory.textContent = `${category?.name || "Sem categoria"}${tool.subcategory ? ` / ${tool.subcategory}` : ""}`;
-  els.detailOwner.textContent = tool.owner || "Möble";
+  els.detailOwner.textContent = tool.owner || "MÖBI";
   els.detailLocation.textContent =
     tool.status === "loaned" && tool.loanedTo
       ? `Emprestada para ${tool.loanedTo}`
@@ -2187,3 +2388,21 @@ function showToast(message) {
   window.clearTimeout(showToast.timeout);
   showToast.timeout = window.setTimeout(() => els.toast.classList.add("hidden"), 2600);
 }
+
+/** Ponte entre aplicativos — cadastro oficial na Platform. */
+window.MoobleOs = {
+  openCollaboratorWizard(opts = {}) {
+    sessionStorage.setItem(
+      "moble_wizard_return",
+      JSON.stringify({ product: opts.returnProduct || "admin", view: opts.returnView || "employees" }),
+    );
+    sessionStorage.setItem("moble_admin_initial_view", "collaboratorWizard");
+    openProduct("admin");
+  },
+  openPersonEdit(personId) {
+    if (personId) sessionStorage.setItem("moble_admin_person_edit", personId);
+    sessionStorage.setItem("moble_admin_initial_view", "people");
+    openProduct("admin");
+  },
+};
+window.openProduct = openProduct;

@@ -1,10 +1,11 @@
 [Unit]
-Description=Moble Tools (MOBI OS)
+Description=MÖBI Tools (MOBI OS)
 After=network.target
 
 [Service]
 Type=simple
 WorkingDirectory=/opt/moble-tools
+EnvironmentFile=/etc/moble-tools/moble-tools.env
 Environment=HOST=0.0.0.0
 Environment=PORT=4173
 ExecStart=/usr/bin/node /opt/moble-tools/server.js

@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "prepare-db": "node scripts/prepare-database.js",
-    "package": "powershell -ExecutionPolicy Bypass -File install/package-deploy.ps1"
+    "package": "powershell -ExecutionPolicy Bypass -File install/package-deploy.ps1",
+    "package:vm": "powershell -ExecutionPolicy Bypass -File install/criar-pacote-vm.ps1"
   },
   "engines": {
     "node": ">=22.5.0"
