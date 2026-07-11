@@ -1,0 +1,29 @@
+name: Deploy VM
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy na VM Ubuntu
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.MOBIOS_SSH_HOST }}
+          username: ${{ secrets.MOBIOS_SSH_USER }}
+          key: ${{ secrets.MOBIOS_SSH_KEY }}
+          script_stop: true
+          command_timeout: 30m
+          script: |
+            set -euo pipefail
+            if [[ -x /usr/local/bin/mobios-deploy ]]; then
+              mobios-deploy
+            elif [[ -f ~/mobios/install/linux/deploy-from-git.sh ]]; then
+              bash ~/mobios/install/linux/deploy-from-git.sh
+            else
+              echo "ERRO: configure o deploy na VM com: sudo bash ~/mobios/install/linux/setup-git-deploy.sh"
+              exit 1
+            fi
