@@ -23,8 +23,13 @@ export function createAdminRouter(deps) {
     const method = req.method;
 
     if (pathname === "/api/admin/me" && method === "GET") {
-      const person = getCurrentPerson(ctx.db, req);
-      sendJson(res, 200, { authenticated: true, user: ctx.requireAdmin(req), person });
+      try {
+        const user = ctx.requireAdmin(req);
+        const person = getCurrentPerson(ctx.db, req);
+        sendJson(res, 200, { authenticated: true, user, person });
+      } catch (error) {
+        sendJson(res, error.status || 401, { authenticated: false, error: error.message });
+      }
       return;
     }
 

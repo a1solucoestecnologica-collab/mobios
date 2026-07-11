@@ -1,6 +1,6 @@
 import { createPlatformContext } from "./context.js";
 import { getCurrentPerson, getPlatformArchitectureSummary } from "./services/identity/index.js";
-import { getAccessibleApplications, getPersonPermissions } from "./services/authorization/index.js";
+import { getAccessibleApplications, getPersonPermissions, personHasAdminAccess } from "./services/authorization/index.js";
 import { platformLogin, platformLogout } from "./services/auth/index.js";
 import { assertSafeMutation } from "./services/auth/csrf.js";
 import { reportIdentityLinkGaps } from "./migrations/identity-hardening.js";
@@ -29,6 +29,10 @@ export function createPlatformRouter(deps) {
   return async function handlePlatformApi(req, res, url) {
     const { pathname } = url;
     const method = req.method;
+
+    function authorizeAdmin(req) {
+      return authorize(req, { anyPrefix: ["admin."] });
+    }
 
     if (pathname === "/api/platform/login" && method === "POST") {
       try {
@@ -91,13 +95,13 @@ export function createPlatformRouter(deps) {
     }
 
     if (pathname === "/api/platform/people" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { people: listPeople(db) });
       return;
     }
 
     if (pathname === "/api/platform/people" && method === "POST") {
-      authorize(req);
+      authorizeAdmin(req);
       try {
         const body = await readJson(req);
         const person = createPersonProfile(db, body);
@@ -110,7 +114,7 @@ export function createPlatformRouter(deps) {
 
     const personAttachMatch = pathname.match(/^\/api\/platform\/people\/([^/]+)\/attachments\/([^/]+)$/);
     if (personAttachMatch && method === "DELETE") {
-      authorize(req);
+      authorizeAdmin(req);
       const ok = removePersonAttachment(db, personAttachMatch[1], personAttachMatch[2]);
       if (!ok) {
         sendJson(res, 404, { error: "Anexo não encontrado." });
@@ -122,7 +126,7 @@ export function createPlatformRouter(deps) {
 
     const personAttachPostMatch = pathname.match(/^\/api\/platform\/people\/([^/]+)\/attachments$/);
     if (personAttachPostMatch && method === "POST") {
-      authorize(req);
+      authorizeAdmin(req);
       try {
         const body = await readJson(req);
         const attachment = addPersonAttachment(db, personAttachPostMatch[1], body);
@@ -135,9 +139,13 @@ export function createPlatformRouter(deps) {
 
     const personMatch = pathname.match(/^\/api\/platform\/people\/([^/]+)$/);
     if (personMatch) {
-      authorize(req);
       const personId = personMatch[1];
       if (method === "GET") {
+        const ctx = authorize(req);
+        const isSelf = personId === ctx.person.id;
+        if (!isSelf && !personHasAdminAccess(ctx.permissionCodes)) {
+          throw new HttpError(403, "Permissão insuficiente.");
+        }
         const person = getPersonProfile(db, personId);
         if (!person) {
           sendJson(res, 404, { error: "Pessoa não encontrada." });
@@ -146,6 +154,7 @@ export function createPlatformRouter(deps) {
         sendJson(res, 200, { person });
         return;
       }
+      authorizeAdmin(req);
       if (method === "PUT") {
         try {
           const body = await readJson(req);
@@ -171,13 +180,13 @@ export function createPlatformRouter(deps) {
     }
 
     if (pathname === "/api/platform/roles" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { roles: listRoles(db) });
       return;
     }
 
     if (pathname === "/api/platform/roles" && method === "POST") {
-      authorize(req);
+      authorizeAdmin(req);
       const body = await readJson(req);
       const role = createRole(db, body);
       sendJson(res, 201, { role });
@@ -186,7 +195,7 @@ export function createPlatformRouter(deps) {
 
     const rolePermMatch = pathname.match(/^\/api\/platform\/roles\/([^/]+)\/permissions$/);
     if (rolePermMatch) {
-      authorize(req);
+      authorizeAdmin(req);
       const roleId = rolePermMatch[1];
       if (method === "GET") {
         sendJson(res, 200, { permissionIds: getRolePermissionIds(db, roleId) });
@@ -205,7 +214,7 @@ export function createPlatformRouter(deps) {
 
     const roleMatch = pathname.match(/^\/api\/platform\/roles\/([^/]+)$/);
     if (roleMatch) {
-      authorize(req);
+      authorizeAdmin(req);
       const roleId = roleMatch[1];
       if (method === "GET") {
         const role = getRole(db, roleId);
@@ -241,56 +250,56 @@ export function createPlatformRouter(deps) {
     }
 
     if (pathname === "/api/platform/permissions" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { permissions: listPermissions(db) });
       return;
     }
 
     if (pathname === "/api/platform/applications" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { applications: listApplications(db) });
       return;
     }
 
     if (pathname === "/api/platform/navigation" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { items: listNavigationItems(db) });
       return;
     }
 
     if (pathname === "/api/platform/audit" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { logs: listAuditLogs(db) });
       return;
     }
 
     if (pathname === "/api/platform/sessions" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, { sessions: listSessions(db) });
       return;
     }
 
     if (pathname === "/api/platform/settings" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, getSettings(db));
       return;
     }
 
     if (pathname === "/api/platform/settings" && method === "PUT") {
-      authorize(req);
+      authorizeAdmin(req);
       const body = await readJson(req);
       sendJson(res, 200, updateSettings(db, body));
       return;
     }
 
     if (pathname === "/api/platform/architecture" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, getPlatformArchitectureSummary(db));
       return;
     }
 
     if (pathname === "/api/platform/stats" && method === "GET") {
-      authorize(req);
+      authorizeAdmin(req);
       sendJson(res, 200, getPlatformStats(db));
       return;
     }

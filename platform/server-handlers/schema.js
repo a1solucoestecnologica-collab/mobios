@@ -1,6 +1,7 @@
 // MÖBI OS — Schema da Plataforma (DDL + seeds).
 // Domínio oficial: platform/ · Arquitetura: /docs/BIBLIA_MOBI_OS.md
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
+import { syncAdminDepartmentsToPlatform } from "./services/departments/index.js";
 
 const PERMISSION_SEEDS = [
   { code: "dashboard.access", name: "Acessar painel", application: "launcher", module: "dashboard", action: "access" },
@@ -172,6 +173,7 @@ export function initPlatformDatabase(db) {
 
   migratePlatformSchema(db);
   seedPlatformData(db);
+  syncAdminDepartmentsToPlatform(db);
 }
 
 function migrateIdentityLinks(db) {

@@ -6,6 +6,7 @@ const BASE = "/api/planner";
 async function request(path, options = {}) {
   const response = await fetch(`${BASE}${path}`, {
     headers: { "content-type": "application/json" },
+    credentials: "same-origin",
     ...options,
   });
   if (!response.ok) {

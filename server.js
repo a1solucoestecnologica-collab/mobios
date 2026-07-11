@@ -2339,6 +2339,10 @@ async function handlePlannerApi(req, res, url) {
   if (pathname === "/api/planner/collaborators" && req.method === "GET") {
     const platformCtx = buildRequestContext(db, req);
     if (platformCtx) {
+      if (canManagePlannerCollaborators(platformCtx.permissionCodes)) {
+        sendJson(res, 200, { collaborators: listPlannerCollaborators() });
+        return;
+      }
       if (!platformCtx.permissionCodes.has("planner.execute")) {
         throw new HttpError(403, "Permissão insuficiente.");
       }
@@ -2499,8 +2503,29 @@ function mapPlannerBlockRow(row) {
 }
 
 function listPlannerMaps(collaboratorId = null) {
-  const where = collaboratorId ? "WHERE m.owner_collaborator_id = ?" : "";
-  const query = `SELECT
+  if (!collaboratorId) {
+    return db
+      .prepare(
+        `SELECT
+          m.id,
+          m.name,
+          m.description,
+          m.owner_collaborator_id AS ownerCollaboratorId,
+          m.created_at AS createdAt,
+          m.updated_at AS updatedAt,
+          (SELECT COUNT(*) FROM planner_blocks b WHERE b.map_id = m.id) AS blockCount,
+          (SELECT COUNT(*) FROM planner_connections c WHERE c.map_id = m.id) AS connectionCount
+        FROM planner_maps m
+        ORDER BY m.updated_at DESC`,
+      )
+      .all();
+  }
+
+  const ids = resolveCollaboratorIdVariants(collaboratorId);
+  const placeholders = ids.map(() => "?").join(", ");
+  return db
+    .prepare(
+      `SELECT
         m.id,
         m.name,
         m.description,
@@ -2510,10 +2535,10 @@ function listPlannerMaps(collaboratorId = null) {
         (SELECT COUNT(*) FROM planner_blocks b WHERE b.map_id = m.id) AS blockCount,
         (SELECT COUNT(*) FROM planner_connections c WHERE c.map_id = m.id) AS connectionCount
       FROM planner_maps m
-      ${where}
-      ORDER BY m.updated_at DESC`;
-  const stmt = db.prepare(query);
-  return collaboratorId ? stmt.all(collaboratorId) : stmt.all();
+      WHERE m.owner_collaborator_id IN (${placeholders})
+      ORDER BY m.updated_at DESC`,
+    )
+    .all(...ids);
 }
 
 function createPlannerMap(input) {
@@ -2746,27 +2771,80 @@ function addBlockComment(blockId, input) {
   return { comment: { id, blockId, author: String(input.author || "Você"), body, kind: "comment", createdAt: now } };
 }
 
-function listPlannerCollaborators() {
-  const users = db
-    .prepare("SELECT id, name, role FROM platform_users ORDER BY name")
-    .all();
+function canManagePlannerCollaborators(permissionCodes) {
+  if (!permissionCodes?.size) return false;
+  return (
+    permissionCodes.has("planner.create") ||
+    permissionCodes.has("planner.map.create") ||
+    permissionCodes.has("planner.view") ||
+    permissionCodes.has("planner.delete") ||
+    [...permissionCodes].some((code) => code.startsWith("admin."))
+  );
+}
 
-  return users.map((user) => {
+function resolveCollaboratorIdVariants(collaboratorOrPersonId) {
+  const ids = [String(collaboratorOrPersonId)];
+  const person = db.prepare("SELECT id, email FROM people WHERE id = ?").get(collaboratorOrPersonId);
+  if (person) {
+    const legacy = db
+      .prepare(
+        `SELECT u.id FROM platform_users u
+         WHERE lower(u.email) = lower(?) LIMIT 1`,
+      )
+      .get(person.email || "");
+    if (legacy?.id && !ids.includes(legacy.id)) ids.push(legacy.id);
+    const legacyPersonKey = `legacy-person-${person.id}`;
+    if (!ids.includes(legacyPersonKey)) ids.push(legacyPersonKey);
+  } else {
+    const legacyUser = db.prepare("SELECT email FROM platform_users WHERE id = ?").get(collaboratorOrPersonId);
+    if (legacyUser?.email) {
+      const linkedPerson = db
+        .prepare("SELECT id FROM people WHERE lower(email) = lower(?) LIMIT 1")
+        .get(legacyUser.email);
+      if (linkedPerson?.id && !ids.includes(linkedPerson.id)) ids.push(linkedPerson.id);
+    }
+  }
+  return ids;
+}
+
+function getActiveExecutionForCollaborator(collaboratorOrPersonId) {
+  const byPerson = getActiveExecutionForPerson(collaboratorOrPersonId);
+  if (byPerson) return byPerson;
+
+  const ids = resolveCollaboratorIdVariants(collaboratorOrPersonId);
+  for (const id of ids) {
     const execution = db
       .prepare(
-        `SELECT e.id AS executionId, e.map_id AS mapId, m.name AS mapName, e.status, e.updated_at AS updatedAt
+        `SELECT e.id, e.map_id AS mapId, m.name AS mapName, e.status, e.updated_at AS updatedAt
          FROM planner_executions e
          JOIN planner_maps m ON m.id = e.map_id
          WHERE e.collaborator_id = ? AND e.status = 'active'
          ORDER BY e.updated_at DESC LIMIT 1`,
       )
-      .get(user.id);
+      .get(id);
+    if (execution) return execution;
+  }
+  return null;
+}
 
+function listPlannerCollaborators() {
+  const people = db
+    .prepare(
+      `SELECT id, name, status
+       FROM people
+       WHERE status = 'ACTIVE'
+       ORDER BY name COLLATE NOCASE`,
+    )
+    .all();
+
+  return people.map((person) => {
+    const execution = getActiveExecutionForCollaborator(person.id);
     return {
-      id: user.id,
-      name: user.name,
-      role: user.role,
-      currentExecutionId: execution?.executionId || null,
+      id: person.id,
+      personId: person.id,
+      name: person.name,
+      role: "collaborator",
+      currentExecutionId: execution?.id || null,
       currentMapId: execution?.mapId || null,
       currentMapName: execution?.mapName || null,
     };
@@ -2775,7 +2853,7 @@ function listPlannerCollaborators() {
 
 function resolvePlannerPersonSummary(person) {
   if (!person?.id) return null;
-  const execution = getActiveExecutionForPerson(person.id);
+  const execution = getActiveExecutionForCollaborator(person.id);
   return {
     id: person.id,
     personId: person.id,
@@ -2813,7 +2891,12 @@ function resolvePlannerCollaboratorForPerson(person) {
 
 function createPlannerExecution(input) {
   const mapId = required(input.mapId, "Mapa");
-  const personId = required(input.personId || input.collaboratorPersonId, "Pessoa (personId)");
+  let personId = input.personId || input.collaboratorPersonId || null;
+  if (!personId && input.collaboratorId) {
+    const asPerson = db.prepare("SELECT id FROM people WHERE id = ?").get(String(input.collaboratorId));
+    if (asPerson) personId = asPerson.id;
+  }
+  personId = required(personId, "Pessoa (personId)");
 
   const person = db.prepare("SELECT id, name, status FROM people WHERE id = ?").get(personId);
   if (!person || person.status !== "ACTIVE") throw new HttpError(404, "Pessoa não encontrada ou inativa.");
@@ -2907,17 +2990,31 @@ function getPlannerExecution(executionId) {
 function getCollaboratorExecution(collaboratorId) {
   const execution = db
     .prepare(
-      "SELECT id FROM planner_executions WHERE collaborator_id = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1",
+      "SELECT id FROM planner_executions WHERE person_id = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1",
     )
     .get(collaboratorId);
 
-  if (!execution) {
+  const legacyExecution = execution
+    ? null
+    : db
+        .prepare(
+          "SELECT id FROM planner_executions WHERE collaborator_id = ? AND status = 'active' ORDER BY updated_at DESC LIMIT 1",
+        )
+        .get(collaboratorId);
+
+  const resolved = execution || legacyExecution;
+
+  if (!resolved) {
+    const person = db.prepare("SELECT id, name FROM people WHERE id = ?").get(collaboratorId);
+    if (person) {
+      return { execution: null, collaborator: { id: person.id, name: person.name }, blocks: [], connections: [] };
+    }
     const collaborator = db.prepare("SELECT id, name FROM platform_users WHERE id = ?").get(collaboratorId);
     if (!collaborator) throw new HttpError(404, "Colaborador nao encontrado.");
     return { execution: null, collaborator, blocks: [], connections: [] };
   }
 
-  return getPlannerExecution(execution.id);
+  return getPlannerExecution(resolved.id);
 }
 
 function updateExecutionBlock(executionBlockId, input) {

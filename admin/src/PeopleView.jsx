@@ -147,7 +147,7 @@ function formToPayload(form) {
       managerPersonId: form.employment.managerPersonId || null,
     },
     access: {
-      username: form.access.username,
+      username: form.access.username || form.email || undefined,
       password: form.access.password || undefined,
       accessStatus: form.access.accessStatus,
       mfaEnabled: form.access.mfaEnabled,
@@ -323,9 +323,10 @@ function TabDocuments({ form, setForm }) {
   );
 }
 
-function TabEmployment({ form, setForm, departments, people }) {
+function TabEmployment({ form, setForm, departments, people, roles }) {
   const e = form.employment;
   const setE = (patch) => setForm({ ...form, employment: { ...e, ...patch } });
+  const selectedRoleId = roles.find((r) => r.name === e.jobTitle)?.id || "";
   return (
     <div className="form-grid">
       <Field label="Matrícula">
@@ -335,7 +336,7 @@ function TabEmployment({ form, setForm, departments, people }) {
         <input className="input" value={e.company} onChange={(ev) => setE({ company: ev.target.value })} />
       </Field>
       <Field label="Departamento">
-        <select className="input" value={e.departmentId} onChange={(ev) => setE({ departmentId: ev.target.value })}>
+        <select className="input" value={e.departmentId || ""} onChange={(ev) => setE({ departmentId: ev.target.value })}>
           <option value="">Selecione</option>
           {departments.map((d) => (
             <option key={d.id} value={d.id}>{d.name}</option>
@@ -343,7 +344,19 @@ function TabEmployment({ form, setForm, departments, people }) {
         </select>
       </Field>
       <Field label="Cargo">
-        <input className="input" value={e.jobTitle} onChange={(ev) => setE({ jobTitle: ev.target.value })} />
+        <select
+          className="input"
+          value={selectedRoleId}
+          onChange={(ev) => {
+            const role = roles.find((r) => r.id === ev.target.value);
+            setE({ jobTitle: role?.name || "" });
+          }}
+        >
+          <option value="">Selecione</option>
+          {roles.map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
       </Field>
       <Field label="Gestor">
         <select className="input" value={e.managerPersonId} onChange={(ev) => setE({ managerPersonId: ev.target.value })}>
@@ -386,7 +399,13 @@ function TabAccess({ form, setForm }) {
   return (
     <div className="form-grid">
       <Field label="Usuário">
-        <input className="input" value={a.username} onChange={(e) => setA({ username: e.target.value })} autoComplete="off" />
+        <input
+          className="input"
+          value={a.username}
+          onChange={(e) => setA({ username: e.target.value })}
+          placeholder={form.email || "login"}
+          autoComplete="off"
+        />
       </Field>
       <Field label={a.hasPassword ? "Nova senha (deixe em branco para manter)" : "Senha"}>
         <input
@@ -450,9 +469,16 @@ function TabApplications({ form, setForm, applications }) {
 function TabRoles({ form, setForm, roles }) {
   function toggle(roleId) {
     const ids = new Set(form.roleIds);
-    if (ids.has(roleId)) ids.delete(roleId);
-    else ids.add(roleId);
-    setForm({ ...form, roleIds: [...ids] });
+    const role = roles.find((r) => r.id === roleId);
+    const adding = !ids.has(roleId);
+    if (adding) ids.add(roleId);
+    else ids.delete(roleId);
+
+    const next = { ...form, roleIds: [...ids] };
+    if (adding && role && !form.employment.jobTitle) {
+      next.employment = { ...form.employment, jobTitle: role.name };
+    }
+    setForm(next);
   }
 
   return (
@@ -623,12 +649,13 @@ export function PeopleView({ onOpenWizard, initialPersonId }) {
       const payload = formToPayload(form);
       if (form.id) {
         await adminApi.people.update(form.id, payload);
-        await reloadPerson(form.id);
+        setForm(null);
+        load();
       } else {
         const { person } = await adminApi.people.create(payload);
         setForm(personToForm(person));
+        load();
       }
-      load();
     } catch (err) {
       setError(err.message);
     }
@@ -741,7 +768,7 @@ export function PeopleView({ onOpenWizard, initialPersonId }) {
               {activeTab === "address" && <TabAddress form={form} setForm={setForm} />}
               {activeTab === "documents" && <TabDocuments form={form} setForm={setForm} />}
               {activeTab === "employment" && (
-                <TabEmployment form={form} setForm={setForm} departments={departments} people={people} />
+                <TabEmployment form={form} setForm={setForm} departments={departments} people={people} roles={roles} />
               )}
               {activeTab === "access" && <TabAccess form={form} setForm={setForm} />}
               {activeTab === "applications" && (

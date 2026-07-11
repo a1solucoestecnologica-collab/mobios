@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import Layout from "./Layout.jsx";
 import { TopbarActionsContext } from "./topbar.js";
+import { adminApi } from "./api.js";
 import {
   ApplicationsView,
   AuditView,
@@ -71,6 +72,16 @@ export default function App({ onRegisterNavigate }) {
   const [view, setView] = useState("dashboard");
   const [topbarActions, setTopbarActions] = useState(null);
   const [personEditId, setPersonEditId] = useState(null);
+  const [access, setAccess] = useState("checking");
+
+  useEffect(() => {
+    adminApi.me()
+      .then((data) => {
+        if (!data.authenticated) throw new Error(data.error || "Acesso negado.");
+        setAccess("ok");
+      })
+      .catch(() => setAccess("denied"));
+  }, []);
 
   function navigate(nextView) {
     setView(nextView);
@@ -94,6 +105,23 @@ export default function App({ onRegisterNavigate }) {
   }, [onRegisterNavigate]);
 
   const meta = PAGE_META[view] || PAGE_META.dashboard;
+
+  if (access === "checking") {
+    return <p className="admin-panel-msg">Verificando permissões…</p>;
+  }
+
+  if (access === "denied") {
+    return (
+      <section className="panel admin-access-denied">
+        <h2>Acesso negado</h2>
+        <p>Você não tem permissão para acessar o painel administrativo.</p>
+        <p className="admin-panel-msg">Solicite ao administrador uma função com permissões de administração.</p>
+        <button type="button" className="button primary" onClick={() => window.openProduct?.("tools")}>
+          Voltar aos aplicativos
+        </button>
+      </section>
+    );
+  }
 
   return (
     <TopbarActionsContext.Provider value={setTopbarActions}>

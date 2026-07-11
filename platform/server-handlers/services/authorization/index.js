@@ -76,3 +76,8 @@ export function getPersonPermissions(db, personId) {
     )
     .all(...codes);
 }
+
+export function personHasAdminAccess(permissionCodes) {
+  const list = permissionCodes instanceof Set ? [...permissionCodes] : permissionCodes || [];
+  return list.some((code) => String(code).startsWith("admin."));
+}

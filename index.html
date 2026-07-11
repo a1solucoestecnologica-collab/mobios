@@ -99,15 +99,20 @@
           <span>⌕</span>
           <input type="search" placeholder="Buscar preparação, ferramenta ou responsável..." />
         </div>
-        <button class="header-icon notification-dot" type="button" aria-label="Notificações">○</button>
-        <div class="user-chip">
+        <button class="header-icon header-logout-btn" type="button" id="headerLogoutBtn" aria-label="Sair da conta" title="Sair da conta">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+            <polyline points="16 17 21 12 16 7" />
+            <line x1="21" y1="12" x2="9" y2="12" />
+          </svg>
+        </button>
+        <button type="button" class="user-chip" id="userChipBtn" aria-label="Sair da conta" title="Sair da conta">
           <div class="avatar" id="currentUserAvatar">NE</div>
           <div>
             <strong id="currentUserName">Nova Era</strong>
             <span id="currentUserRole">Marcenaria</span>
           </div>
-        </div>
-        <button class="button ghost hidden" type="button" id="logoutBtn">Sair</button>
+        </button>
       </header>
 
       <aside class="sidebar" aria-label="Navegacao principal">

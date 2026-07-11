@@ -256,6 +256,37 @@ textarea {
   display: flex;
   align-items: center;
   gap: 10px;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.user-chip:hover:not(:disabled) {
+  background: var(--muted);
+}
+
+.user-chip:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+.header-logout-btn {
+  color: var(--muted-foreground);
+}
+
+.header-logout-btn:hover:not(:disabled) {
+  color: var(--foreground);
+  background: var(--muted);
+}
+
+.header-logout-btn:disabled {
+  opacity: 0.35;
+  cursor: default;
 }
 
 .avatar {
@@ -2314,8 +2345,12 @@ label {
     font-size: 16px;
   }
 
-  .notification-dot,
+  .header-logout-btn,
   .user-chip {
+    display: flex;
+  }
+
+  .user-chip div:not(.avatar) {
     display: none;
   }
 
@@ -2847,7 +2882,7 @@ body.product-ponto .mobile-tabbar {
 }
 
 /* Sem a busca central, o chip do usuário precisa ir para o canto direito. */
-body.product-ponto .app-header .notification-dot {
+body.product-ponto .app-header .header-logout-btn {
   margin-left: auto;
 }
 
@@ -2892,7 +2927,7 @@ body.product-admin .mobile-tabbar {
   display: none;
 }
 
-body.product-admin .app-header .notification-dot {
+body.product-admin .app-header .header-logout-btn {
   margin-left: auto;
 }
 
@@ -2937,7 +2972,7 @@ body.product-portal .mobile-tabbar {
   display: none;
 }
 
-body.product-portal .app-header .notification-dot {
+body.product-portal .app-header .header-logout-btn {
   display: none;
 }
 

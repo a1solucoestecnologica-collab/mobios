@@ -1,5 +1,6 @@
 // Cadastro oficial de Pessoas — Platform (identidade, sem regras de negócio de apps).
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
+import { resolveDepartmentId } from "../departments/index.js";
 
 function nowIso() {
   return new Date().toISOString();
@@ -125,6 +126,100 @@ function loadRoleIds(db, personId) {
     .map((r) => r.roleId);
 }
 
+function tryGetPontoEmployee(db, personId) {
+  try {
+    return db.prepare("SELECT * FROM ponto_employees WHERE person_id = ?").get(personId);
+  } catch {
+    return null;
+  }
+}
+
+function rethrowDbError(error) {
+  const msg = String(error?.message || error);
+  if (msg.includes("FOREIGN KEY")) {
+    const friendly = new Error(
+      "Referência inválida: verifique departamento, gestor, aplicativos ou funções selecionados.",
+    );
+    friendly.status = 400;
+    throw friendly;
+  }
+  throw error;
+}
+
+function resolveManagerPersonId(db, personId, managerPersonId) {
+  const id = managerPersonId ? String(managerPersonId).trim() : "";
+  if (!id || id === personId) return null;
+  const row = db.prepare("SELECT id FROM people WHERE id = ?").get(id);
+  return row ? id : null;
+}
+
+function enrichEmploymentFromSources(db, personId, employment) {
+  const e = { ...(employment || {}) };
+  const ponto = tryGetPontoEmployee(db, personId);
+
+  if (!e.employeeCode && ponto?.registration_number) e.employeeCode = ponto.registration_number;
+  if (!e.jobTitle && ponto?.role_name) e.jobTitle = ponto.role_name;
+  if (!e.hiredAt && ponto?.admission_date) e.hiredAt = ponto.admission_date;
+
+  if (!e.departmentId && ponto?.department) {
+    const deptId = resolveDepartmentId(db, null, ponto.department);
+    if (deptId) {
+      e.departmentId = deptId;
+      const dept = db.prepare("SELECT name FROM departments WHERE id = ?").get(deptId);
+      e.departmentName = dept?.name || ponto.department;
+    } else {
+      e.departmentName = ponto.department;
+    }
+  }
+
+  if (e.departmentId && !db.prepare("SELECT id FROM departments WHERE id = ?").get(e.departmentId)) {
+    e.departmentId = resolveDepartmentId(db, e.departmentId, e.departmentName) || null;
+  } else if (!e.departmentId && e.departmentName) {
+    e.departmentId = resolveDepartmentId(db, null, e.departmentName);
+  }
+
+  if (!e.company) {
+    try {
+      const settings = db.prepare("SELECT platform_name FROM admin_settings WHERE id = 'default'").get();
+      if (settings?.platform_name) e.company = settings.platform_name;
+    } catch {
+      // configurações legadas indisponíveis
+    }
+  }
+
+  if (!e.jobTitle) {
+    const roleIds = loadRoleIds(db, personId);
+    if (roleIds.length) {
+      const role = db.prepare("SELECT name FROM roles WHERE id = ?").get(roleIds[0]);
+      if (role?.name) e.jobTitle = role.name;
+    }
+  }
+
+  return e;
+}
+
+function syncEmploymentToPontoEmployee(db, personId, employment, now) {
+  const row = tryGetPontoEmployee(db, personId);
+  if (!row) return;
+
+  const deptName = employment.departmentId
+    ? db.prepare("SELECT name FROM departments WHERE id = ?").get(employment.departmentId)?.name || ""
+    : "";
+
+  db.prepare(
+    `UPDATE ponto_employees SET
+      registration_number = ?, role_name = ?, department = ?, admission_date = ?, updated_at = ?
+     WHERE person_id = ?`,
+  ).run(
+    employment.employeeCode || row.registration_number || "",
+    employment.jobTitle || row.role_name || "",
+    deptName || row.department || "",
+    employment.hiredAt || row.admission_date || "",
+    now,
+    personId,
+  );
+}
+
 function loadAttachments(db, personId) {
   return db
     .prepare(
@@ -137,12 +232,17 @@ function loadAttachments(db, personId) {
 export function getPersonProfile(db, personId) {
   const row = db.prepare("SELECT * FROM people WHERE id = ?").get(personId);
   if (!row) return null;
+  const employment = enrichEmploymentFromSources(db, personId, loadEmployment(db, personId) || {});
+  const access = loadAccess(db, personId) || { username: "", accessStatus: "ACTIVE", mfaEnabled: false };
+  if (!access.username && row.email) {
+    access.username = row.email;
+  }
   return {
     ...mapPersonRow(row),
     address: loadAddress(db, personId) || {},
     documents: loadDocuments(db, personId) || {},
-    employment: loadEmployment(db, personId) || {},
-    access: loadAccess(db, personId) || { username: "", accessStatus: "ACTIVE", mfaEnabled: false },
+    employment,
+    access,
     applicationIds: loadApplicationIds(db, personId),
     roleIds: loadRoleIds(db, personId),
     attachments: loadAttachments(db, personId),
@@ -182,23 +282,37 @@ function upsertDocuments(db, personId, documents, now) {
 
 function upsertEmployment(db, personId, employment, now) {
   const e = employment || {};
+  const departmentId = resolveDepartmentId(db, e.departmentId, e.departmentName);
+  const managerPersonId = resolveManagerPersonId(db, personId, e.managerPersonId);
   const exists = db.prepare("SELECT person_id FROM person_employment WHERE person_id = ?").get(personId);
   const vals = [
-    e.employeeCode || "", e.company || "", e.departmentId || null, e.jobTitle || "",
-    e.managerPersonId || null, e.costCenter || "", e.contractType || "",
-    e.hiredAt || "", e.terminatedAt || "", e.employmentStatus || "ACTIVE",
+    e.employeeCode || "",
+    e.company || "",
+    departmentId,
+    e.jobTitle || "",
+    managerPersonId,
+    e.costCenter || "",
+    e.contractType || "",
+    e.hiredAt || "",
+    e.terminatedAt || "",
+    e.employmentStatus || "ACTIVE",
   ];
-  if (exists) {
-    db.prepare(
-      `UPDATE person_employment SET employee_code=?, company=?, department_id=?, job_title=?, manager_person_id=?,
-       cost_center=?, contract_type=?, hired_at=?, terminated_at=?, employment_status=?, updated_at=? WHERE person_id=?`,
-    ).run(...vals, now, personId);
-  } else {
-    db.prepare(
-      `INSERT INTO person_employment (person_id, employee_code, company, department_id, job_title, manager_person_id,
-       cost_center, contract_type, hired_at, terminated_at, employment_status, updated_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    ).run(personId, ...vals, now);
+  try {
+    if (exists) {
+      db.prepare(
+        `UPDATE person_employment SET employee_code=?, company=?, department_id=?, job_title=?, manager_person_id=?,
+         cost_center=?, contract_type=?, hired_at=?, terminated_at=?, employment_status=?, updated_at=? WHERE person_id=?`,
+      ).run(...vals, now, personId);
+    } else {
+      db.prepare(
+        `INSERT INTO person_employment (person_id, employee_code, company, department_id, job_title, manager_person_id,
+         cost_center, contract_type, hired_at, terminated_at, employment_status, updated_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      ).run(personId, ...vals, now);
+    }
+    syncEmploymentToPontoEmployee(db, personId, { ...e, departmentId }, now);
+  } catch (error) {
+    rethrowDbError(error);
   }
 }
 
@@ -240,12 +354,16 @@ function syncRoles(db, personId, roleIds, now) {
 }
 
 function savePersonSections(db, personId, body, now) {
-  if (body.address) upsertAddress(db, personId, body.address, now);
-  if (body.documents) upsertDocuments(db, personId, body.documents, now);
-  if (body.employment) upsertEmployment(db, personId, body.employment, now);
-  if (body.access) upsertAccess(db, personId, body.access, now);
-  if (body.applicationIds) syncApplications(db, personId, body.applicationIds, now);
-  if (body.roleIds) syncRoles(db, personId, body.roleIds, now);
+  try {
+    if (body.address) upsertAddress(db, personId, body.address, now);
+    if (body.documents) upsertDocuments(db, personId, body.documents, now);
+    if (body.employment) upsertEmployment(db, personId, body.employment, now);
+    if (body.access) upsertAccess(db, personId, body.access, now);
+    if (body.applicationIds) syncApplications(db, personId, body.applicationIds, now);
+    if (body.roleIds) syncRoles(db, personId, body.roleIds, now);
+  } catch (error) {
+    rethrowDbError(error);
+  }
 }
 
 export function createPersonProfile(db, body) {

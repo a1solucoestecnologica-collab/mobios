@@ -2,6 +2,7 @@
 // Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md
 let state = { categories: [], tools: [], jobs: [], users: [], workBoxes: [], separationTemplates: [] };
 let currentUser = null;
+let sessionContext = { permissions: [], accessibleApplications: [] };
 
 const statusLabels = {
   active: "Disponivel",
@@ -46,6 +47,8 @@ const els = {
   loginPassword: document.querySelector("#loginPassword"),
   loginError: document.querySelector("#loginError"),
   logoutBtn: document.querySelector("#logoutBtn"),
+  headerLogoutBtn: document.querySelector("#headerLogoutBtn"),
+  userChipBtn: document.querySelector("#userChipBtn"),
   launcherLogout: document.querySelector("#launcherLogout"),
   currentUserAvatar: document.querySelector("#currentUserAvatar"),
   currentUserName: document.querySelector("#currentUserName"),
@@ -182,6 +185,14 @@ function bindEvents() {
   });
 
   els.logoutBtn?.addEventListener("click", async () => {
+    await logout();
+  });
+
+  els.headerLogoutBtn?.addEventListener("click", async () => {
+    await logout();
+  });
+
+  els.userChipBtn?.addEventListener("click", async () => {
     await logout();
   });
 
@@ -373,7 +384,37 @@ function mapPersonToUser(person) {
 async function restoreSession() {
   const me = await api("/api/me");
   if (!me.authenticated) return null;
+  sessionContext = {
+    permissions: me.permissions || [],
+    accessibleApplications: me.accessibleApplications || [],
+  };
   return me.user || mapPersonToUser(me.person);
+}
+
+function permissionCodeList() {
+  return (sessionContext.permissions || []).map((item) => (typeof item === "string" ? item : item.code)).filter(Boolean);
+}
+
+function hasAppAccess(slug) {
+  return (sessionContext.accessibleApplications || []).some((app) => app.slug === slug);
+}
+
+function hasAdminAccess() {
+  if (hasAppAccess("admin")) return true;
+  return permissionCodeList().some((code) => code.startsWith("admin."));
+}
+
+function applyLauncherVisibility() {
+  document.querySelectorAll(".launcher-app").forEach((button) => {
+    const product = button.dataset.launch;
+    let allowed = true;
+    if (product === "admin") allowed = hasAdminAccess();
+    else if (product === "tools") allowed = hasAppAccess("tools");
+    else if (product === "planner") allowed = hasAppAccess("planner");
+    else if (product === "ponto") allowed = hasAppAccess("time");
+    button.classList.toggle("hidden", !allowed);
+    button.disabled = !allowed;
+  });
 }
 
 async function boot() {
@@ -394,15 +435,16 @@ async function boot() {
 async function login() {
   els.loginError.classList.add("hidden");
   try {
-    const result = await api("/api/login", {
+    await api("/api/login", {
       method: "POST",
       body: JSON.stringify({
         email: els.loginEmail.value.trim(),
         password: els.loginPassword.value,
       }),
     });
-    currentUser = result.user || mapPersonToUser(result.person);
-    if (!currentUser) throw new Error("Nao foi possivel iniciar a sessao.");
+    const user = await restoreSession();
+    if (!user) throw new Error("Nao foi possivel iniciar a sessao.");
+    currentUser = user;
     els.loginPassword.value = "";
     showApp();
     await refreshState();
@@ -414,6 +456,7 @@ async function login() {
 async function logout() {
   await api("/api/logout", { method: "POST" }).catch(() => null);
   currentUser = null;
+  sessionContext = { permissions: [], accessibleApplications: [] };
   state = { categories: [], tools: [], jobs: [], users: [], workBoxes: [], separationTemplates: [] };
   showLogin();
 }
@@ -424,6 +467,8 @@ function showLogin(message = "") {
   document.body.classList.remove("launcher-open");
   els.loginScreen.classList.remove("hidden");
   els.logoutBtn?.classList.add("hidden");
+  els.headerLogoutBtn?.setAttribute("disabled", "disabled");
+  els.userChipBtn?.setAttribute("disabled", "disabled");
   if (message) {
     els.loginError.textContent = message;
     els.loginError.classList.remove("hidden");
@@ -436,7 +481,10 @@ function showApp() {
   document.body.classList.remove("auth-locked");
   els.loginScreen.classList.add("hidden");
   els.logoutBtn?.classList.remove("hidden");
+  els.headerLogoutBtn?.removeAttribute("disabled");
+  els.userChipBtn?.removeAttribute("disabled");
   renderCurrentUser();
+  applyLauncherVisibility();
   showLauncher();
 }
 
@@ -524,6 +572,26 @@ function showLauncher() {
 
 // Escolha de um app no launcher: entra no produto e fecha a tela de apps.
 function openProduct(product) {
+  if (product === "admin" && !hasAdminAccess()) {
+    window.alert("Você não tem permissão para acessar o MÖBI Admin.");
+    showLauncher();
+    return;
+  }
+  if (product === "tools" && !hasAppAccess("tools")) {
+    window.alert("Você não tem permissão para acessar o MÖBI Tools.");
+    showLauncher();
+    return;
+  }
+  if (product === "planner" && !hasAppAccess("planner")) {
+    window.alert("Você não tem permissão para acessar o MÖBI WorkMaps.");
+    showLauncher();
+    return;
+  }
+  if (product === "ponto" && !hasAppAccess("time")) {
+    window.alert("Você não tem permissão para acessar o MÖBI Time.");
+    showLauncher();
+    return;
+  }
   els.launcherScreen?.classList.add("hidden");
   document.body.classList.remove("launcher-open");
   switchProduct(product || "tools");

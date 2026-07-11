@@ -1,4 +1,6 @@
 import { randomBytes, scryptSync, timingSafeEqual } from "node:crypto";
+import { buildRequestContext } from "../../platform/server-handlers/services/auth/context.js";
+import { personHasAdminAccess } from "../../platform/server-handlers/services/authorization/index.js";
 
 export function createAdminContext({ db, HttpError }) {
   function createId(prefix) {
@@ -65,18 +67,23 @@ export function createAdminContext({ db, HttpError }) {
     return publicUser(user);
   }
 
-  function getDefaultAdminUser() {
-    const row = db.prepare("SELECT * FROM admin_users WHERE active = 1 ORDER BY created_at ASC LIMIT 1").get();
-    if (!row) {
-      return { id: "admin-default", name: "Administrador", email: "admin@mobios.com", roleId: null, departmentId: null, active: true };
-    }
-    return publicUser(row);
-  }
-
   function requireAdmin(req) {
-    const user = getAuthenticatedAdminUser(req);
-    if (user) return user;
-    return getDefaultAdminUser();
+    const platformCtx = buildRequestContext(db, req);
+    if (!platformCtx?.person) {
+      throw new HttpError(401, "Sessão expirada. Faça login novamente.");
+    }
+    if (!personHasAdminAccess(platformCtx.permissionCodes)) {
+      throw new HttpError(403, "Você não tem permissão para acessar o painel administrativo.");
+    }
+    return {
+      id: platformCtx.person.id,
+      name: platformCtx.person.name,
+      email: platformCtx.person.email || "",
+      roleId: null,
+      departmentId: null,
+      active: true,
+      platform: true,
+    };
   }
 
   return {
@@ -87,5 +94,6 @@ export function createAdminContext({ db, HttpError }) {
     adminHashPassword,
     requireAdmin,
     publicUser,
+    getAuthenticatedAdminUser,
   };
 }
