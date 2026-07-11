@@ -41,6 +41,7 @@ export function createPlatformRouter(deps) {
         const result = platformLogin(db, res, body, {
           ip: req.socket?.remoteAddress || null,
           device: req.headers["user-agent"] || null,
+          req,
         });
         sendJson(res, 200, { ok: true, person: result.person });
       } catch (error) {

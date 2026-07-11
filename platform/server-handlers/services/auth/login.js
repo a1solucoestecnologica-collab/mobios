@@ -44,10 +44,10 @@ export function authenticateCredentials(db, email, password) {
     .get(normalized, normalized);
 
   if (access && access.access_status === "ACTIVE" && access.person_status === "ACTIVE") {
-    if (verifyPassword(password, access.password_hash)) {
+    if (access.password_hash && verifyPassword(password, access.password_hash)) {
       return { person: rowToPerson(db, access.person_id), source: "person_access" };
     }
-    return null;
+    if (access.password_hash) return null;
   }
 
   const platformUser = safeQuery(
@@ -74,6 +74,7 @@ export function authenticateCredentials(db, email, password) {
   if (adminUser && verifyPassword(password, adminUser.password_hash)) {
     const person = resolvePersonByEmail(db, normalized);
     if (!person || person.status !== "ACTIVE") return null;
+    syncLegacyCredentialToPersonAccess(db, person.id, normalized, adminUser.password_hash);
     return { person, source: "admin_users", legacyUserId: adminUser.id };
   }
 

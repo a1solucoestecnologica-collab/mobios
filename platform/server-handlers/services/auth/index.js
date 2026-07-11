@@ -5,6 +5,7 @@ import {
   setPlatformSessionCookie,
   writeAuditLog,
 } from "./session.js";
+import { shouldUseSecureCookies } from "./crypto.js";
 import { createAuthorize, buildRequestContext, getSessionPersonId, requirePermission } from "./context.js";
 import { getPlatformSession } from "./session.js";
 import { mapPerson } from "../identity/index.js";
@@ -32,7 +33,7 @@ export function platformLogin(db, res, input, meta = {}) {
   }
 
   const sessionId = createPlatformSession(db, auth.person.id, meta);
-  const secure = process.env.NODE_ENV === "production";
+  const secure = shouldUseSecureCookies(meta.req);
   setPlatformSessionCookie(res, sessionId, { secure });
 
   writeAuditLog(db, {
@@ -50,7 +51,7 @@ export function platformLogin(db, res, input, meta = {}) {
 
 export function platformLogout(db, req, res) {
   const session = getPlatformSession(db, req);
-  destroyPlatformSession(db, req, res, { secure: process.env.NODE_ENV === "production" });
+  destroyPlatformSession(db, req, res, { secure: shouldUseSecureCookies(req) });
   if (session?.personId) {
     writeAuditLog(db, {
       personId: session.personId,

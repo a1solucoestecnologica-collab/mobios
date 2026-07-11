@@ -702,6 +702,7 @@ function loginUser(req, res, input) {
     result = platformLogin(db, res, { email, password }, {
       ip: req.socket?.remoteAddress || null,
       device: req.headers["user-agent"] || null,
+      req,
     });
   } catch (error) {
     throw new HttpError(error.status || 401, error.message || "E-mail ou senha invalidos.");

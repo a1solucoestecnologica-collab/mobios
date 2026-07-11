@@ -46,6 +46,19 @@ export function getPlatformSessionId(req) {
   return cookies[PLATFORM_SESSION_COOKIE] || "";
 }
 
+/** Cookies Secure só em HTTPS (ou MOBI_COOKIE_SECURE=1). HTTP na VM não grava sessão com Secure. */
+export function shouldUseSecureCookies(req) {
+  const forced = String(process.env.MOBI_COOKIE_SECURE || "").trim().toLowerCase();
+  if (forced === "1" || forced === "true" || forced === "yes") return true;
+  if (forced === "0" || forced === "false" || forced === "no") return false;
+  const forwarded = String(req?.headers?.["x-forwarded-proto"] || "")
+    .split(",")[0]
+    .trim()
+    .toLowerCase();
+  if (forwarded) return forwarded === "https";
+  return false;
+}
+
 export function setPlatformSessionCookie(res, sessionId, { secure = false } = {}) {
   const parts = [
     `${PLATFORM_SESSION_COOKIE}=${sessionId}`,

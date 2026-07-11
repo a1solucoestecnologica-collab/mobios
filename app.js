@@ -435,16 +435,28 @@ async function boot() {
 async function login() {
   els.loginError.classList.add("hidden");
   try {
-    await api("/api/login", {
+    const result = await api("/api/login", {
       method: "POST",
       body: JSON.stringify({
         email: els.loginEmail.value.trim(),
         password: els.loginPassword.value,
       }),
     });
-    const user = await restoreSession();
-    if (!user) throw new Error("Nao foi possivel iniciar a sessao.");
-    currentUser = user;
+    currentUser = result.user || mapPersonToUser(result.person);
+    if (!currentUser) throw new Error("Nao foi possivel iniciar a sessao.");
+
+    try {
+      const me = await api("/api/me");
+      if (me.authenticated) {
+        sessionContext = {
+          permissions: me.permissions || [],
+          accessibleApplications: me.accessibleApplications || [],
+        };
+      }
+    } catch {
+      sessionContext = { permissions: [], accessibleApplications: [] };
+    }
+
     els.loginPassword.value = "";
     showApp();
     await refreshState();
