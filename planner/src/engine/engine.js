@@ -63,7 +63,7 @@ export function createLabel(color = "#2f6df6", text = "") {
 }
 
 // Checklist agrupado: um grupo com nome e seus itens.
-export function createChecklistGroup(name = "Checklist") {
+export function createChecklistGroup(name = "Lista de verificação") {
   return { id: createId("chl"), name, items: [] };
 }
 

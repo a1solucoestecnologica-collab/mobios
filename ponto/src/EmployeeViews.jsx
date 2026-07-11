@@ -55,7 +55,7 @@ export function PunchView() {
           <p>{formatDateBR(record.serverDate)} às {record.serverTime?.slice(0, 8)}</p>
           <p>{employee.name}</p>
           <p>Protocolo: <code>{record.protocol}</code></p>
-          {record.photoUrl && <img src={record.photoUrl} alt="Selfie" className="ponto-success-photo" />}
+          {record.photoUrl && <img src={record.photoUrl} alt="Foto do rosto" className="ponto-success-photo" />}
           <div className="ponto-success-actions">
             <button type="button" className="button secondary" onClick={() => generateReceiptPdf({ companyName, employee, record })}>Baixar comprovante PDF</button>
             <button type="button" className="button primary" onClick={() => { setStep("home"); setResult(null); load(); }}>Voltar ao início</button>

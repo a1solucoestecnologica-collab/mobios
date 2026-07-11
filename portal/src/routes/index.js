@@ -52,8 +52,8 @@ export const PORTAL_ROUTES = [
   },
   {
     id: "checklists",
-    label: "Meus Checklists",
-    shortLabel: "Checklists",
+    label: "Minhas listas de verificação",
+    shortLabel: "Listas",
     icon: "✅",
     permission: "planner.execute",
     app: "planner",

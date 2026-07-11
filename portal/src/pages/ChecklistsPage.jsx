@@ -4,8 +4,8 @@ import { MOCK_CHECKLISTS } from "../assets/mockData.js";
 export default function ChecklistsPage() {
   return (
     <div className="portal-page">
-      <PageHeader title="Meus Checklists" subtitle="Execução via MÖBI WorkMaps" />
-      <MockNotice>Checklists simulados — o Portal apenas executa via API do WorkMaps.</MockNotice>
+      <PageHeader title="Minhas listas de verificação" subtitle="Execução via MÖBI WorkMaps" />
+      <MockNotice>Listas simuladas — o Portal apenas executa via API do WorkMaps.</MockNotice>
       <PlaceholderCard>
         <ul className="portal-list portal-list--cards">
           {MOCK_CHECKLISTS.map((item) => (

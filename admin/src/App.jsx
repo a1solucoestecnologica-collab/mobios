@@ -18,7 +18,7 @@ import CollaboratorWizard from "./CollaboratorWizard.jsx";
 
 const PAGE_META = {
   dashboard: {
-    title: "Dashboard",
+    title: "Painel",
     subtitle: "Visão geral da administração da plataforma MÖBI OS.",
   },
   platform: {
@@ -31,7 +31,7 @@ const PAGE_META = {
   },
   collaboratorWizard: {
     title: "Novo Colaborador",
-    subtitle: "Wizard oficial da Platform — identidade e configuração dos aplicativos.",
+    subtitle: "Wizard oficial da Plataforma — identidade e configuração dos aplicativos.",
   },
   users: {
     title: "Usuários (legado)",

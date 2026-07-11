@@ -34,7 +34,7 @@ export default function HomeSmartGrid({ context, onNavigate, canPunch, onPunchSh
       cards.push({
         key: "checklists",
         icon: "✅",
-        title: "Checklists",
+        title: "Listas de verificação",
         value: `${checklists.pending} pendentes`,
         hint: checklists.current ? `${checklists.current.title} (${checklists.current.progress})` : null,
         badge: checklists.pending,
@@ -108,7 +108,7 @@ export default function HomeSmartGrid({ context, onNavigate, canPunch, onPunchSh
       cards.push({
         key: "current-checklist",
         icon: "☑",
-        title: "Checklist Atual",
+        title: "Lista atual",
         value: checklists.current.title,
         hint: checklists.current.progress,
         onClick: () => onNavigate("checklists"),

@@ -70,7 +70,7 @@ export const pontoApi = {
     get: (id) => request(`/api/ponto/shift-plans/${id}`),
     create: (body) => request("/api/ponto/shift-plans", { method: "POST", body: JSON.stringify(body) }),
   },
-  onboarding: () => Promise.reject(new Error("Depreciado. Use o Wizard Novo Colaborador na Platform (Admin → Pessoas).")),
+  onboarding: () => Promise.reject(new Error("Depreciado. Use o assistente Novo Colaborador na Plataforma (Admin → Pessoas).")),
   readiness: (employeeId) => request(`/api/ponto/employees/${employeeId}/readiness`),
   adjustments: {
     list: (status) => {

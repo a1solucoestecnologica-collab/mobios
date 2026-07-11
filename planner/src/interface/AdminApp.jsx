@@ -752,7 +752,7 @@ function AdminAppInner() {
           </div>
 
           <div className="wm-field">
-            <span>Checklist</span>
+            <span>Lista de verificação</span>
             <ul className="wm-checklist">
               {(selectedBlock.data.checklist || []).map((item) => (
                 <li key={item.id}>

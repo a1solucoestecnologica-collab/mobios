@@ -1,5 +1,5 @@
 /**
- * Formulário compartilhado — cadastro oficial Platform (People).
+ * Formulário compartilhado — cadastro oficial da Plataforma (Pessoas).
  */
 export const GENDER_OPTIONS = ["", "Masculino", "Feminino", "Outro", "Prefiro não informar"];
 export const MARITAL_OPTIONS = ["", "Solteiro(a)", "Casado(a)", "Divorciado(a)", "Viúvo(a)", "União estável"];
@@ -93,7 +93,7 @@ export const WIZARD_STEPS = [
   { id: "address", label: "Endereço" },
   { id: "documents", label: "Documentos" },
   { id: "employment", label: "Corporativo" },
-  { id: "access", label: "Login" },
+  { id: "access", label: "Acesso" },
   { id: "roles", label: "Funções" },
   { id: "permissions", label: "Permissões" },
   { id: "applications", label: "Aplicativos" },

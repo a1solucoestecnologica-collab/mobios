@@ -14,7 +14,7 @@ const statusLabels = {
 };
 
 const controlLabels = {
-  individual: "Individual",
+  individual: "Unitário",
   quantity: "Por quantidade",
 };
 

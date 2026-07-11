@@ -21,7 +21,7 @@ import {
 
 const PAGE_META = {
   dashboard: {
-    title: "Dashboard",
+    title: "Painel",
     subtitle: "Visão geral operacional do MÖBI Time.",
   },
   employees: {

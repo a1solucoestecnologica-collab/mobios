@@ -13,12 +13,12 @@ const ADJUSTMENT_KINDS = [
 ];
 const READINESS_LABELS = {
   person: "Pessoa",
-  portal: "Portal",
+  portal: "Portal do Colaborador",
   permissions: "Permissões",
   journey: "Jornada",
   shift: "Escala",
   access: "Acesso",
-  timeLink: "Vínculo Time",
+  timeLink: "Vínculo MÖBI Time",
 };
 
 function Panel({ title, subtitle, actions, children }) {
@@ -41,6 +41,9 @@ function StatusPill({ status }) {
     PENDING: "Pendente",
     APPROVED: "Aprovado",
     REJECTED: "Rejeitado",
+    VALID: "Válido",
+    MANUAL_ADJUSTED: "Ajustado manualmente",
+    CANCELED: "Cancelado",
     CANCELLED: "Cancelado",
     OPEN: "Aberta",
     CLOSED: "Fechada",
@@ -51,7 +54,7 @@ function StatusPill({ status }) {
 /** @deprecated Use Wizard da Platform via window.MoobleOs.openCollaboratorWizard */
 export function OnboardingView() {
   return (
-    <Panel title="Onboarding movido" subtitle="O cadastro de colaboradores pertence exclusivamente à Platform">
+    <Panel title="Cadastro inicial movido" subtitle="O cadastro de colaboradores pertence exclusivamente à Plataforma">
       <p>Use <strong>Novo Colaborador</strong> no Admin → Pessoas, ou o botão equivalente em Gestão operacional do Time.</p>
       <button type="button" className="button primary" onClick={() => window.MoobleOs?.openCollaboratorWizard?.({ returnProduct: "ponto", returnView: "employees" })}>
         Abrir Wizard oficial
@@ -216,7 +219,7 @@ export function AdjustmentsView() {
       }>
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Colaborador</th><th>Data</th><th>Tipo</th><th>Horário</th><th>Status</th><th></th></tr></thead>
+            <thead><tr><th>Colaborador</th><th>Data</th><th>Tipo</th><th>Horário</th><th>Situação</th><th></th></tr></thead>
             <tbody>
               {requests.length === 0 ? <tr><td colSpan={6}>Nenhuma solicitação.</td></tr> : requests.map((r) => (
                 <tr key={r.id}>
@@ -289,7 +292,7 @@ export function CompetencesView() {
       </div>
       <div className="table-wrap">
         <table>
-          <thead><tr><th>Período</th><th>Status</th><th>Fechada em</th><th></th></tr></thead>
+          <thead><tr><th>Período</th><th>Situação</th><th>Fechada em</th><th></th></tr></thead>
           <tbody>
             {items.length === 0 ? <tr><td colSpan={4}>Nenhuma competência.</td></tr> : items.map((c) => (
               <tr key={c.id}>
@@ -476,7 +479,7 @@ export function EmployeeStatusView() {
   }, [selectedId]);
 
   return (
-    <Panel title="Status do colaborador" subtitle="Verifique o que falta antes de liberar o Portal">
+    <Panel title="Situação do colaborador" subtitle="Verifique o que falta antes de liberar o Portal do Colaborador">
       {error && <p className="ponto-error">{error}</p>}
       <label>Colaborador
         <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>

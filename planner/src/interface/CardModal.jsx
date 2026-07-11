@@ -83,7 +83,7 @@ export default function CardModal({ node, collaborators, onChange, onClose, onDe
   // Internamente guardamos um unico grupo para manter compatibilidade com o backend.
   const items = checklists[0]?.items || [];
   const writeItems = (nextItems) => {
-    const group = checklists[0] || createChecklistGroup("Checklist");
+    const group = checklists[0] || createChecklistGroup("Lista de verificação");
     patch({ checklists: [{ ...group, items: nextItems }] });
   };
   const addItem = () => writeItems([...items, createChecklistItem("")]);
@@ -308,7 +308,7 @@ export default function CardModal({ node, collaborators, onChange, onClose, onDe
             {/* Checklists */}
             <section className="wm-modal-section">
               <h4>
-                Checklist
+                Lista de verificação
                 {progress.total > 0 ? <span className="wm-progress-pct">{Math.round(progress.ratio * 100)}%</span> : null}
               </h4>
               {progress.total > 0 ? (
@@ -356,7 +356,7 @@ export default function CardModal({ node, collaborators, onChange, onClose, onDe
                     />
                     <input
                       className="wm-attachment-url"
-                      placeholder="Link (URL)"
+                      placeholder="Link (endereço)"
                       value={att.url}
                       onChange={(event) => updateAttachment(att.id, { url: event.target.value })}
                     />

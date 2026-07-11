@@ -108,7 +108,7 @@ export default function CollaboratorWizard({ onDone, onCancel }) {
     return (
       <section className="panel admin-wizard">
         <h2>Colaborador pronto para utilização</h2>
-        <p><strong>{done.person.name}</strong> cadastrado na Platform.</p>
+        <p><strong>{done.person.name}</strong> cadastrado na Plataforma.</p>
         {selectedApps.some((a) => a.slug === "time") && <p>Vínculo operacional do MÖBI Time configurado.</p>}
         <div className="modal-actions">
           <button type="button" className="button primary" onClick={() => onDone?.(done.person, true)}>Concluir</button>
@@ -122,7 +122,7 @@ export default function CollaboratorWizard({ onDone, onCancel }) {
       <header className="admin-wizard-header">
         <div>
           <h2>Novo Colaborador</h2>
-          <p className="admin-people-modal-sub">Wizard oficial da Platform — identidade e configuração dos aplicativos.</p>
+          <p className="admin-people-modal-sub">Wizard oficial da Plataforma — identidade e configuração dos aplicativos.</p>
         </div>
         <button type="button" className="button ghost" onClick={onCancel}>Cancelar</button>
       </header>
@@ -199,7 +199,7 @@ export default function CollaboratorWizard({ onDone, onCancel }) {
                 {CONTRACT_TYPES.map((c) => <option key={c || "e"} value={c}>{c || "Selecione"}</option>)}
               </select>
             </Field>
-            <Field label="Status">
+            <Field label="Situação">
               <select className="input" value={form.employment.employmentStatus} onChange={(e) => setForm({ ...form, employment: { ...form.employment, employmentStatus: e.target.value } })}>
                 {EMPLOYMENT_STATUS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -211,7 +211,7 @@ export default function CollaboratorWizard({ onDone, onCancel }) {
           <div className="form-grid">
             <Field label="Usuário (login)" className="full"><input className="input" value={form.access.username || form.email} onChange={(e) => setForm({ ...form, access: { ...form.access, username: e.target.value } })} /></Field>
             <Field label="Senha inicial *" className="full"><input type="password" className="input" value={form.access.password} onChange={(e) => setForm({ ...form, access: { ...form.access, password: e.target.value } })} minLength={6} /></Field>
-            <Field label="Status do acesso">
+            <Field label="Situação do acesso">
               <select className="input" value={form.access.accessStatus} onChange={(e) => setForm({ ...form, access: { ...form.access, accessStatus: e.target.value } })}>
                 {ACCESS_STATUS.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
               </select>
@@ -278,7 +278,7 @@ export default function CollaboratorWizard({ onDone, onCancel }) {
                 {shiftPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
               </select>
             </Field>
-            <Field label="Status operacional">
+            <Field label="Situação operacional">
               <select className="input" value={form.timeConfig.operationalStatus} onChange={(e) => setForm({ ...form, timeConfig: { ...form.timeConfig, operationalStatus: e.target.value } })}>
                 <option value="ACTIVE">Ativo</option>
                 <option value="INACTIVE">Inativo</option>
@@ -289,7 +289,7 @@ export default function CollaboratorWizard({ onDone, onCancel }) {
 
         {current.id === "finish" && (
           <div>
-            <p>Revise os dados e finalize o cadastro na Platform.</p>
+            <p>Revise os dados e finalize o cadastro na Plataforma.</p>
             <ul className="admin-wizard-summary">
               <li><strong>Nome:</strong> {form.name}</li>
               <li><strong>E-mail:</strong> {form.email}</li>

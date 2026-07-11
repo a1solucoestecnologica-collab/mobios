@@ -3,11 +3,11 @@
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 
 const PERMISSION_SEEDS = [
-  { code: "dashboard.access", name: "Acessar Dashboard", application: "launcher", module: "dashboard", action: "access" },
-  { code: "tools.view", name: "Visualizar Tools", application: "tools", module: "tools", action: "view" },
-  { code: "tools.create", name: "Criar no Tools", application: "tools", module: "tools", action: "create" },
-  { code: "tools.edit", name: "Editar no Tools", application: "tools", module: "tools", action: "edit" },
-  { code: "tools.delete", name: "Excluir no Tools", application: "tools", module: "tools", action: "delete" },
+  { code: "dashboard.access", name: "Acessar painel", application: "launcher", module: "dashboard", action: "access" },
+  { code: "tools.view", name: "Visualizar ferramentas", application: "tools", module: "tools", action: "view" },
+  { code: "tools.create", name: "Criar em ferramentas", application: "tools", module: "tools", action: "create" },
+  { code: "tools.edit", name: "Editar em ferramentas", application: "tools", module: "tools", action: "edit" },
+  { code: "tools.delete", name: "Excluir em ferramentas", application: "tools", module: "tools", action: "delete" },
   { code: "tools.reserve", name: "Reservar ferramentas", application: "tools", module: "tools", action: "reserve" },
   { code: "planner.view", name: "Visualizar WorkMaps", application: "planner", module: "planner", action: "view" },
   { code: "planner.create", name: "Criar no WorkMaps", application: "planner", module: "planner", action: "create" },
@@ -31,7 +31,7 @@ const PERMISSION_SEEDS = [
 ];
 
 const APPLICATION_SEEDS = [
-  { id: "app-launcher", slug: "launcher", permission_prefix: "dashboard.", name: "Dashboard", description: "Launcher de aplicativos do MÖBI OS", icon: "▦", version: "1.0", sort_order: 0, active: 1 },
+  { id: "app-launcher", slug: "launcher", permission_prefix: "dashboard.", name: "Painel de aplicativos", description: "Central de aplicativos do MÖBI OS", icon: "▦", version: "1.0", sort_order: 0, active: 1 },
   { id: "app-tools", slug: "tools", permission_prefix: "tools.", name: "MÖBI Tools", description: "Cadastro e gestão de ferramentas de obra", icon: "▣", version: "1.0", sort_order: 1, active: 1 },
   { id: "app-planner", slug: "planner", permission_prefix: "planner.", name: "MÖBI WorkMaps", description: "Engine de mapas de trabalho", icon: "▤", version: "1.0", sort_order: 2, active: 1 },
   { id: "app-ponto", slug: "ponto", permission_prefix: "time.", name: "MÖBI Time", description: "Sistema de cartão ponto", icon: "◷", version: "1.0", sort_order: 3, active: 1 },

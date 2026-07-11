@@ -49,7 +49,7 @@ export default function PunchPage() {
         </PlaceholderCard>
       )}
       {status && (
-        <PlaceholderCard title="Status atual">
+        <PlaceholderCard title="Situação atual">
           <pre className="portal-json-preview">{JSON.stringify(status, null, 2)}</pre>
         </PlaceholderCard>
       )}

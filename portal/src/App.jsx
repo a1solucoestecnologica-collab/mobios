@@ -78,7 +78,7 @@ export default function App({ onRegisterNavigate, standalone = false, onSessionE
       <div className="portal-error-screen">
         <h2>Portal indisponível</h2>
         <p>{error}</p>
-        <p className="portal-muted">Verifique se você possui a permissão portal.access na Platform.</p>
+        <p className="portal-muted">Verifique se você possui a permissão de acesso ao Portal na Plataforma.</p>
       </div>
     );
   }

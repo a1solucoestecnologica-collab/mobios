@@ -21,7 +21,7 @@ export const MOCK_HOME_CONTEXT = {
       { label: "Jornada concluída", done: true },
       { label: "Horas trabalhadas", value: "8h04" },
       { label: "Tarefas concluídas", value: "2" },
-      { label: "Checklists concluídos", value: "1" },
+      { label: "Listas de verificação concluídas", value: "1" },
       { label: "Pendências", value: "1 solicitação" },
     ],
   },

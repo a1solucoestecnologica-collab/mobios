@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTopbarActions } from "./topbar.js";
+import { labelPermission, labelStatus } from "../../shared/ui-pt.js";
 import { adminApi } from "./api.js";
 
 function Panel({ title, subtitle, actions, children }) {
@@ -108,7 +109,7 @@ export function UsersView() {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nome</th><th>E-mail</th><th>Função</th><th>Departamento</th><th>Status</th><th className="actions-col">Ações</th></tr>
+              <tr><th>Nome</th><th>E-mail</th><th>Função</th><th>Departamento</th><th>Situação</th><th className="actions-col">Ações</th></tr>
             </thead>
             <tbody>
               {users.length === 0 ? (
@@ -158,7 +159,7 @@ export function UsersView() {
                 </select>
               </label>
               {form.id && (
-                <label>Status
+                <label>Situação
                   <select className="input" value={form.active ? "1" : "0"} onChange={(e) => setForm({ ...form, active: e.target.value === "1" })}>
                     <option value="1">Ativo</option>
                     <option value="0">Inativo</option>
@@ -180,7 +181,7 @@ export function UsersView() {
 const emptyRole = { name: "", description: "" };
 
 const APP_LABELS = {
-  launcher: "Dashboard",
+  launcher: "Painel",
   tools: "MÖBI Tools",
   planner: "MÖBI WorkMaps",
   time: "MÖBI Time",
@@ -473,7 +474,7 @@ export function PermissionsView() {
                             onChange={() => togglePermission(perm.id)}
                           />
                           <span className="admin-perm-check-text">
-                            <strong>{perm.name}</strong>
+                            <strong>{labelPermission(perm.name)}</strong>
                             <small>{perm.code}</small>
                           </span>
                         </label>
@@ -538,7 +539,7 @@ export function DepartmentsView() {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nome</th><th>Descrição</th><th>Status</th><th className="actions-col">Ações</th></tr>
+              <tr><th>Nome</th><th>Descrição</th><th>Situação</th><th className="actions-col">Ações</th></tr>
             </thead>
             <tbody>
               {departments.length === 0 ? (
@@ -573,7 +574,7 @@ export function DepartmentsView() {
               <label>Nome<input className="input" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} required /></label>
               <label>Descrição<input className="input" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} /></label>
               {form.id && (
-                <label>Status
+                <label>Situação
                   <select className="input" value={form.active ? "1" : "0"} onChange={(e) => setForm({ ...form, active: e.target.value === "1" })}>
                     <option value="1">Ativo</option>
                     <option value="0">Inativo</option>
@@ -606,7 +607,7 @@ export function ApplicationsView() {
       <div className="table-wrap">
         <table>
           <thead>
-            <tr><th>Ícone</th><th>Nome</th><th>Slug</th><th>Prefixo</th><th>Versão</th><th>Descrição</th><th>Status</th></tr>
+            <tr><th>Ícone</th><th>Nome</th><th>Identificador</th><th>Prefixo</th><th>Versão</th><th>Descrição</th><th>Situação</th></tr>
           </thead>
           <tbody>
             {applications.length === 0 ? (
@@ -640,7 +641,7 @@ export function AuditView() {
   }, []);
 
   return (
-    <Panel title="Auditoria" subtitle="Auditoria centralizada da plataforma (audit_logs)">
+    <Panel title="Auditoria" subtitle="Registros centralizados de ações na plataforma">
       {error && <p className="admin-error admin-panel-msg">{error}</p>}
       <div className="table-wrap">
         <table>
@@ -784,7 +785,7 @@ export function PlatformArchitectureView() {
           <article key={item.id} className="metric-card">
             <span>{item.name}</span>
             <strong>{countFor(item.id)}</strong>
-            <small className="admin-arch-meta">{item.table} · {item.status}</small>
+            <small className="admin-arch-meta">{item.table} · {labelStatus(item.status)}</small>
           </article>
         ))}
       </section>
@@ -793,14 +794,14 @@ export function PlatformArchitectureView() {
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Tabela</th><th>Domínio</th><th>Status</th></tr>
+              <tr><th>Tabela</th><th>Domínio</th><th>Situação</th></tr>
             </thead>
             <tbody>
               {data.legacy.map((row) => (
                 <tr key={row.table}>
                   <td><code>{row.table}</code></td>
                   <td>{row.domain}</td>
-                  <td><span className="status-pill warn">{row.status}</span></td>
+                  <td><span className="status-pill warn">{labelStatus(row.status)}</span></td>
                 </tr>
               ))}
             </tbody>

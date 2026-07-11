@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MÖBI Tools | Cadastro de Ferramentas</title>
-    <link rel="stylesheet" href="./styles.css?v=20260711-login1" />
+    <link rel="stylesheet" href="./styles.css?v=20260711-pt1" />
     <link rel="stylesheet" href="./planner/dist/planner.css?v=20260707-cal" />
     <link rel="stylesheet" href="./ponto/dist/ponto.css?v=20260710-time10" />
     <link rel="stylesheet" href="./admin/dist/admin.css?v=20260710-admin11" />
@@ -114,7 +114,7 @@
         <nav class="nav-list" id="toolsNavList">
           <button class="nav-item" type="button">
             <span class="nav-icon">▦</span>
-            <span>Dashboard</span>
+            <span>Painel</span>
           </button>
           <button class="nav-item active" type="button" data-view="tools">
             <span class="nav-icon">▣</span>
@@ -169,7 +169,7 @@
         <nav class="nav-list hidden" id="pontoNavList" aria-label="Menu MÖBI Time">
           <button class="nav-item active" type="button" data-ponto-view="dashboard">
             <span class="nav-icon">▦</span>
-            <span>Dashboard</span>
+            <span>Painel</span>
           </button>
           <button class="nav-item" type="button" data-ponto-view="settings">
             <span class="nav-icon">⚙</span>
@@ -179,9 +179,9 @@
             <span class="nav-icon">◷</span>
             <span>Jornadas</span>
           </button>
-          <button class="nav-item" type="button" data-ponto-view="employeeStatus">
+          <button class="nav-item" type="button" data-ponto-view="employeeSituação">
             <span class="nav-icon">◎</span>
-            <span>Status</span>
+            <span>Situação</span>
           </button>
           <button class="nav-item" type="button" data-ponto-view="shiftPlans">
             <span class="nav-icon">◫</span>
@@ -224,7 +224,7 @@
         <nav class="nav-list hidden" id="adminNavList" aria-label="Menu MÖBI Admin">
           <button class="nav-item active" type="button" data-admin-view="dashboard">
             <span class="nav-icon">▦</span>
-            <span>Dashboard</span>
+            <span>Painel</span>
           </button>
           <button class="nav-item" type="button" data-admin-view="people">
             <span class="nav-icon">◎</span>
@@ -275,7 +275,7 @@
               </button>
               <button class="nav-item nav-subitem" type="button" data-admin-view="platform" data-admin-technical="true">
                 <span class="nav-icon">◈</span>
-                <span>Arquitetura da Platform</span>
+                <span>Arquitetura da Plataforma</span>
               </button>
             </div>
           </div>
@@ -290,7 +290,7 @@
           </div>
           <div class="topbar-actions">
             <button class="button primary" type="button" id="newToolBtn">Nova ferramenta</button>
-            <button class="button ghost" type="button" id="exportJsonBtn">Exportar JSON</button>
+            <button class="button ghost" type="button" id="exportJsonBtn">Exportar em JSON</button>
           </div>
         </header>
 
@@ -347,7 +347,7 @@
                   <th>Categoria</th>
                   <th>Proprietario</th>
                   <th>Controle</th>
-                  <th>Status</th>
+                  <th>Situação</th>
                   <th>Atualizado</th>
                   <th class="actions-col">Acoes</th>
                 </tr>
@@ -496,7 +496,7 @@
           <button class="wizard-step active" type="button" data-tool-step="0">Foto</button>
           <button class="wizard-step" type="button" data-tool-step="1">Dados</button>
           <button class="wizard-step" type="button" data-tool-step="2">Categoria</button>
-          <button class="wizard-step" type="button" data-tool-step="3">Status</button>
+          <button class="wizard-step" type="button" data-tool-step="3">Situação</button>
         </div>
 
         <div class="tool-step active" data-step="0">
@@ -513,7 +513,7 @@
             <input class="sr-only" id="toolCameraPhoto" type="file" accept="image/*" capture="environment" />
           </div>
           <div class="photo-preview-wrap">
-            <img class="photo-preview hidden" id="toolPhotoPreview" alt="Preview da ferramenta" />
+            <img class="photo-preview hidden" id="toolPhotoPreview" alt="Pré-visualização da ferramenta" />
             <button class="button ghost hidden" type="button" id="removePhotoBtn">Remover foto</button>
           </div>
         </div>
@@ -579,7 +579,7 @@
           <label>
             Modelo de controle
             <select class="input" id="toolControlModel" required>
-              <option value="individual">Individual</option>
+              <option value="individual">Unitário</option>
               <option value="quantity">Por quantidade</option>
             </select>
           </label>
@@ -591,12 +591,12 @@
 
         <div class="form-grid tool-step" data-step="3">
           <div class="step-intro full">
-            <h3>Status e identificacao</h3>
+            <h3>Situação e identificacao</h3>
             <p>Defina a situacao atual e se a ferramenta tera QR Code.</p>
           </div>
           <label>
-            Status
-            <select class="input" id="toolStatus" required>
+            Situação
+            <select class="input" id="toolSituação" required>
               <option value="active">Disponivel</option>
               <option value="in_work">Em obra</option>
               <option value="loaned">Emprestada</option>
@@ -802,8 +802,8 @@
             <input class="input" id="workBoxResponsible" />
           </label>
           <label>
-            Status
-            <select class="input" id="workBoxStatus">
+            Situação
+            <select class="input" id="workBoxSituação">
               <option value="active">Ativa</option>
               <option value="inactive">Inativa</option>
             </select>
@@ -901,7 +901,7 @@
           </label>
           <label class="hidden">
             Acesso
-            <select class="input" id="userAccessStatus">
+            <select class="input" id="userAccessSituação">
               <option value="enabled">Liberado</option>
               <option value="disabled">Bloqueado</option>
             </select>
@@ -989,8 +989,8 @@
               <strong id="detailCode"></strong>
             </div>
             <div class="detail-kv">
-              <span>Status</span>
-              <strong id="detailStatus"></strong>
+              <span>Situação</span>
+              <strong id="detailSituação"></strong>
             </div>
             <div class="detail-kv">
               <span>Categoria</span>

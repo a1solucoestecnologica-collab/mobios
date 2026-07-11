@@ -231,7 +231,7 @@ function TabPersonal({ form, setForm }) {
       <Field label="Naturalidade">
         <input className="input" value={form.birthplace} onChange={(e) => setForm({ ...form, birthplace: e.target.value })} />
       </Field>
-      <Field label="Status do cadastro">
+      <Field label="Situação do cadastro">
         <select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
           <option value="ACTIVE">Ativo</option>
           <option value="INACTIVE">Inativo</option>
@@ -369,7 +369,7 @@ function TabEmployment({ form, setForm, departments, people }) {
       <Field label="Data de desligamento">
         <input type="date" className="input" value={e.terminatedAt} onChange={(ev) => setE({ terminatedAt: ev.target.value })} />
       </Field>
-      <Field label="Status do colaborador">
+      <Field label="Situação do colaborador">
         <select className="input" value={e.employmentStatus} onChange={(ev) => setE({ employmentStatus: ev.target.value })}>
           {EMPLOYMENT_STATUS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
@@ -397,7 +397,7 @@ function TabAccess({ form, setForm }) {
           autoComplete="new-password"
         />
       </Field>
-      <Field label="Status de acesso">
+      <Field label="Situação de acesso">
         <select className="input" value={a.accessStatus} onChange={(e) => setA({ accessStatus: e.target.value })}>
           {ACCESS_STATUS.map((s) => (
             <option key={s.value} value={s.value}>{s.label}</option>
@@ -672,7 +672,7 @@ export function PeopleView({ onOpenWizard, initialPersonId }) {
                 <th>Matrícula</th>
                 <th>Departamento</th>
                 <th>Cargo</th>
-                <th>Status</th>
+                <th>Situação</th>
                 <th className="actions-col">Ações</th>
               </tr>
             </thead>
@@ -715,7 +715,7 @@ export function PeopleView({ onOpenWizard, initialPersonId }) {
             <div className="modal-header">
               <div>
                 <h2>{form.id ? "Editar pessoa" : "Nova pessoa"}</h2>
-                <p className="admin-people-modal-sub">Cadastro oficial da Platform — identidade e vínculos, sem regras de apps.</p>
+                <p className="admin-people-modal-sub">Cadastro oficial da Plataforma — identidade e vínculos, sem regras de apps.</p>
               </div>
               <button type="button" className="icon-button" onClick={() => setForm(null)}>×</button>
             </div>

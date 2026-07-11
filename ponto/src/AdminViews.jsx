@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useTopbarActions } from "./topbar.js";
 import { pontoApi } from "./api.js";
+import { labelStatus } from "../../shared/ui-pt.js";
 import {
   PUNCH_LABELS,
   formatDateBR,
@@ -161,16 +162,16 @@ export function EmployeesView() {
 
   return (
     <>
-      <Panel title="Gestão operacional" subtitle="Jornada, escala e status — dados pessoais na Platform (Pessoas)">
+      <Panel title="Gestão operacional" subtitle="Jornada, escala e situação — dados pessoais na Plataforma (Pessoas)">
         {error && <p className="ponto-error ponto-panel-msg">{error}</p>}
         <div className="table-wrap">
           <table>
             <thead>
-              <tr><th>Nome</th><th>E-mail</th><th>Jornada</th><th>Escala</th><th>Status</th><th className="actions-col">Ações</th></tr>
+              <tr><th>Nome</th><th>E-mail</th><th>Jornada</th><th>Escala</th><th>Situação</th><th className="actions-col">Ações</th></tr>
             </thead>
             <tbody>
               {employees.length === 0 ? (
-                <tr><td colSpan={6}>Nenhum vínculo Time. Use Novo Colaborador (Wizard da Platform).</td></tr>
+                <tr><td colSpan={6}>Nenhum vínculo Time. Use Novo Colaborador (assistente da Plataforma).</td></tr>
               ) : (
                 employees.map((emp) => (
                   <tr key={emp.id}>
@@ -182,7 +183,7 @@ export function EmployeesView() {
                     <td>
                       <button type="button" className="button ghost" onClick={() => setForm({ ...emptyOperational, ...emp })}>Operacional</button>
                       {emp.personId && (
-                        <button type="button" className="button ghost" onClick={() => openPlatformPerson(emp.personId)}>Cadastro Platform</button>
+                        <button type="button" className="button ghost" onClick={() => openPlatformPerson(emp.personId)}>Cadastro na Plataforma</button>
                       )}
                     </td>
                   </tr>
@@ -203,7 +204,7 @@ export function EmployeesView() {
             {form.personId && (
               <p className="muted-text">
                 Dados pessoais, login e permissões:{" "}
-                <button type="button" className="button link" onClick={() => openPlatformPerson(form.personId)}>abrir cadastro oficial na Platform</button>
+                <button type="button" className="button link" onClick={() => openPlatformPerson(form.personId)}>abrir cadastro oficial na Plataforma</button>
               </p>
             )}
             <div className="form-grid">
@@ -219,7 +220,7 @@ export function EmployeesView() {
                   {shiftPlans.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
                 </select>
               </label>
-              <label>Status operacional
+              <label>Situação operacional
                 <select className="input" value={form.status} onChange={(e) => setForm({ ...form, status: e.target.value })}>
                   <option value="ACTIVE">Ativo</option>
                   <option value="INACTIVE">Inativo</option>
@@ -384,7 +385,7 @@ export function RecordsView() {
         {error && <p className="ponto-error ponto-panel-msg">{error}</p>}
         <div className="table-wrap">
           <table>
-            <thead><tr><th>Data</th><th>Hora</th><th>Funcionário</th><th>Tipo</th><th>Protocolo</th><th>Status</th><th>Foto</th><th className="actions-col">Ações</th></tr></thead>
+            <thead><tr><th>Data</th><th>Hora</th><th>Funcionário</th><th>Tipo</th><th>Protocolo</th><th>Situação</th><th>Foto</th><th className="actions-col">Ações</th></tr></thead>
             <tbody>
               {records.map((r) => (
                 <tr key={r.id}>
@@ -393,7 +394,7 @@ export function RecordsView() {
                   <td>{r.employeeName}</td>
                   <td>{r.typeLabel}</td>
                   <td><code>{r.protocol}</code></td>
-                  <td><span className={`status-pill ${r.status === "VALID" ? "ok" : "warn"}`}>{r.status}</span></td>
+                  <td><span className={`status-pill ${r.status === "VALID" ? "ok" : "warn"}`}>{labelStatus(r.status)}</span></td>
                   <td>{r.photoUrl ? <img src={r.photoUrl} alt="" className="ponto-thumb" /> : "—"}</td>
                   <td><button type="button" className="button ghost" onClick={() => setAdjust({ id: r.id, serverTime: r.serverTime?.slice(0, 5), type: r.type, reason: "" })}>Corrigir</button></td>
                 </tr>

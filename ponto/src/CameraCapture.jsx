@@ -68,12 +68,12 @@ export default function CameraCapture({ onCapture, onCancel }) {
           <video ref={videoRef} autoPlay playsInline muted className="ponto-camera-video" />
           <div className="ponto-camera-actions">
             <button type="button" className="button ghost" onClick={onCancel}>Cancelar</button>
-            <button type="button" className="button primary ponto-btn-large" onClick={snap}>Capturar selfie</button>
+            <button type="button" className="button primary ponto-btn-large" onClick={snap}>Capturar foto do rosto</button>
           </div>
         </>
       ) : (
         <>
-          <img src={preview} alt="Selfie" className="ponto-camera-preview" />
+          <img src={preview} alt="Foto do rosto" className="ponto-camera-preview" />
           <div className="ponto-camera-actions">
             <button type="button" className="button secondary" onClick={retake}>Refazer</button>
             <button type="button" className="button primary ponto-btn-large" onClick={() => onCapture(preview)}>Confirmar</button>
