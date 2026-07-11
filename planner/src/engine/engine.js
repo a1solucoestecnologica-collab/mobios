@@ -183,6 +183,67 @@ export function cardDueStatus(block, now = new Date()) {
 
 const MONTHS_PT = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 
+const WEEKDAY_TOKENS = [
+  ["domingo", "dom"],
+  ["segunda"],
+  ["terca", "terça"],
+  ["quarta"],
+  ["quinta"],
+  ["sexta"],
+  ["sabado", "sábado"],
+];
+
+function normalizeText(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "")
+    .toLowerCase()
+    .trim();
+}
+
+function toISODateLocal(date) {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function addDaysToIso(isoDate, amount) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  const date = new Date(year, month - 1, day);
+  date.setDate(date.getDate() + amount);
+  return toISODateLocal(date);
+}
+
+/** Indice 0=domingo … 6=sabado a partir do titulo da coluna (ex.: SEGUNDA-FEIRA). */
+export function weekdayIndexFromListTitle(title) {
+  const normalized = normalizeText(title);
+  if (!normalized) return null;
+
+  for (let index = 0; index < WEEKDAY_TOKENS.length; index += 1) {
+    for (const token of WEEKDAY_TOKENS[index]) {
+      const key = normalizeText(token);
+      if (normalized === key || normalized.startsWith(`${key}-`) || normalized.startsWith(key)) {
+        return index;
+      }
+    }
+  }
+  return null;
+}
+
+/** Data ISO do dia da semana na mesma semana de focusDate (semana comeca na segunda). */
+export function resolveListColumnDate(title, focusDate) {
+  const weekdayIndex = weekdayIndexFromListTitle(title);
+  if (weekdayIndex == null || !focusDate) return null;
+
+  const [year, month, day] = focusDate.split("-").map(Number);
+  const focus = new Date(year, month - 1, day);
+  const focusWeekday = focus.getDay();
+  const mondayOffset = focusWeekday === 0 ? -6 : 1 - focusWeekday;
+  const columnOffset = weekdayIndex === 0 ? 6 : weekdayIndex - 1;
+  return addDaysToIso(focusDate, mondayOffset + columnOffset);
+}
+
 // Formata "2026-07-08" como "8 de jul".
 export function formatShortDate(dateStr) {
   if (!dateStr) return "";

@@ -26,7 +26,7 @@ function initials(name) {
 
 // Modal completo do cartao (estilo Trello): datas, etiquetas, membros,
 // checklist com progresso, anexos, descricao e comentarios.
-export default function CardModal({ node, collaborators, onChange, onClose, ensureSaved }) {
+export default function CardModal({ node, collaborators, onChange, onClose, onDelete, ensureSaved }) {
   const data = node.data;
   const [comments, setComments] = useState([]);
   const [commentText, setCommentText] = useState("");
@@ -139,6 +139,25 @@ export default function CardModal({ node, collaborators, onChange, onClose, ensu
                 placeholder="Título do cartão"
                 onChange={(event) => patch({ title: event.target.value })}
               />
+              <button
+                type="button"
+                className="wm-modal-delete"
+                title="Excluir cartão"
+                aria-label="Excluir cartão"
+                onClick={() => {
+                  const label = data.title?.trim() || "este cartão";
+                  if (window.confirm(`Excluir "${label}"? Esta ação não pode ser desfeita.`)) {
+                    onDelete?.();
+                  }
+                }}
+              >
+                <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+                  <path
+                    fill="currentColor"
+                    d="M9 3h6l1 2h4v2H4V5h4l1-2zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9zm-1 11h12a2 2 0 0 0 2-2V9H6v9a2 2 0 0 0 2 2z"
+                  />
+                </svg>
+              </button>
             </div>
 
             {/* Etiquetas */}

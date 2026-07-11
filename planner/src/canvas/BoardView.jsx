@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { cardDueStatus, formatShortDate } from "../engine/engine.js";
+import { cardDueStatus, formatShortDate, resolveListColumnDate } from "../engine/engine.js";
 
 function initials(name) {
   return String(name || "?")
@@ -181,7 +181,11 @@ export default function BoardView({
     setDraggingId(null);
   };
 
-  const renderColumn = (key, title, cards, options = {}) => (
+  const renderColumn = (key, title, cards, options = {}) => {
+    const columnDate = resolveListColumnDate(title, focusDate);
+    const dateLabel = columnDate ? formatShortDate(columnDate) : "";
+
+    return (
     <div
       key={key}
       className={`wm-column${options.muted ? " is-muted" : ""}`}
@@ -198,6 +202,14 @@ export default function BoardView({
             onChange={(event) => onRenameList(key, event.target.value)}
           />
         )}
+        {dateLabel ? (
+          <span
+            className={`wm-column-date${columnDate === focusDate ? " is-today" : ""}`}
+            title={columnDate}
+          >
+            {dateLabel}
+          </span>
+        ) : null}
         <span className="wm-column-count">{cards.length}</span>
         {options.muted ? null : (
           <button
@@ -231,7 +243,8 @@ export default function BoardView({
         <AddCardComposer onCreate={(title) => onAddCard(key, title)} />
       )}
     </div>
-  );
+    );
+  };
 
   return (
     <div className="wm-board">

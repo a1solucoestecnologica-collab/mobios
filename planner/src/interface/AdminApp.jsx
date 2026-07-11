@@ -434,6 +434,14 @@ function AdminAppInner() {
     setDirty(true);
   }, []);
 
+  const handleDeleteCard = useCallback((cardId) => {
+    setNodes((current) => current.filter((node) => node.id !== cardId));
+    setEdges((current) => current.filter((edge) => edge.source !== cardId && edge.target !== cardId));
+    setOpenCardId((current) => (current === cardId ? null : current));
+    setSelectedNodeId((current) => (current === cardId ? null : current));
+    setDirty(true);
+  }, []);
+
   const openCardNode = useMemo(
     () => (openCardId ? nodes.find((node) => node.id === openCardId) || null : null),
     [openCardId, nodes],
@@ -863,6 +871,7 @@ function AdminAppInner() {
           collaborators={collaborators}
           onChange={(patch) => updateBlockData(openCardNode.id, patch)}
           onClose={() => setOpenCardId(null)}
+          onDelete={() => handleDeleteCard(openCardNode.id)}
           ensureSaved={saveNow}
         />
       ) : null}
