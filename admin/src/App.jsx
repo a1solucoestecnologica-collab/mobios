@@ -98,13 +98,15 @@ export default function App({ onRegisterNavigate }) {
   return (
     <TopbarActionsContext.Provider value={setTopbarActions}>
       <Layout>
-        <header className="topbar">
-          <div>
-            <h1>{meta.title}</h1>
-            <p>{meta.subtitle}</p>
-          </div>
-          {topbarActions && <div className="topbar-actions">{topbarActions}</div>}
-        </header>
+        {view !== "collaboratorWizard" ? (
+          <header className="topbar">
+            <div>
+              <h1>{meta.title}</h1>
+              <p>{meta.subtitle}</p>
+            </div>
+            {topbarActions && <div className="topbar-actions">{topbarActions}</div>}
+          </header>
+        ) : null}
 
         {view === "dashboard" && <DashboardView />}
         {view === "platform" && <PlatformArchitectureView />}
