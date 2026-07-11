@@ -5,7 +5,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MÖBI Tools | Cadastro de Ferramentas</title>
-    <link rel="stylesheet" href="./styles.css?v=20260709-mobi6" />
+    <link rel="stylesheet" href="./styles.css?v=20260711-login1" />
     <link rel="stylesheet" href="./planner/dist/planner.css?v=20260707-cal" />
     <link rel="stylesheet" href="./ponto/dist/ponto.css?v=20260710-time10" />
     <link rel="stylesheet" href="./admin/dist/admin.css?v=20260710-admin11" />
@@ -13,24 +13,25 @@
   </head>
   <body>
     <section class="login-screen hidden" id="loginScreen">
-      <form class="login-card" id="loginForm">
-        <div>
-          <p class="eyebrow">MÖBI Tools</p>
-          <h1>Acesso da plataforma</h1>
-          <p>Entre para utilizar o cadastro, listas requeridas e painel de colaboradores.</p>
-        </div>
-
-        <label>
-          E-mail
-          <input class="input" id="loginEmail" type="email" autocomplete="username" required />
-        </label>
-        <label>
-          Senha
-          <input class="input" id="loginPassword" type="password" autocomplete="current-password" required />
-        </label>
-        <button class="button primary" type="submit">Entrar</button>
-        <p class="login-error hidden" id="loginError"></p>
-      </form>
+      <div class="login-screen-inner">
+        <header class="login-screen-head">
+          <p class="launcher-eyebrow">MÖBI</p>
+          <h1>Entrar na plataforma</h1>
+          <p class="launcher-sub">Use seu e-mail corporativo para acessar os aplicativos.</p>
+        </header>
+        <form class="login-card" id="loginForm">
+          <label>
+            E-mail
+            <input class="input" id="loginEmail" type="email" autocomplete="username" required />
+          </label>
+          <label>
+            Senha
+            <input class="input" id="loginPassword" type="password" autocomplete="current-password" required />
+          </label>
+          <button class="button primary login-submit" type="submit">Entrar</button>
+          <p class="login-error hidden" id="loginError"></p>
+        </form>
+      </div>
     </section>
 
     <section class="launcher hidden" id="launcherScreen">
@@ -39,6 +40,7 @@
           <p class="launcher-eyebrow">MÖBI</p>
           <h1>Escolha um aplicativo</h1>
           <p class="launcher-sub">Selecione o setor que deseja acessar.</p>
+          <button class="launcher-logout" type="button" id="launcherLogout">Sair da conta</button>
         </header>
         <div class="launcher-grid">
           <button class="launcher-app" type="button" data-launch="tools">
@@ -1037,6 +1039,6 @@
     <script type="module" src="./ponto/dist/ponto.js?v=20260710-time10"></script>
     <script type="module" src="./admin/dist/admin.js?v=20260710-admin11"></script>
     <script type="module" src="./portal/dist/portal.js?v=20260710-portal12"></script>
-    <script type="module" src="./app.js?v=20260710-homolog1"></script>
+    <script type="module" src="./app.js?v=20260711-login1"></script>
   </body>
 </html>

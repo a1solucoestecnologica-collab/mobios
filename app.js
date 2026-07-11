@@ -46,6 +46,7 @@ const els = {
   loginPassword: document.querySelector("#loginPassword"),
   loginError: document.querySelector("#loginError"),
   logoutBtn: document.querySelector("#logoutBtn"),
+  launcherLogout: document.querySelector("#launcherLogout"),
   currentUserAvatar: document.querySelector("#currentUserAvatar"),
   currentUserName: document.querySelector("#currentUserName"),
   currentUserRole: document.querySelector("#currentUserRole"),
@@ -181,6 +182,10 @@ function bindEvents() {
   });
 
   els.logoutBtn?.addEventListener("click", async () => {
+    await logout();
+  });
+
+  els.launcherLogout?.addEventListener("click", async () => {
     await logout();
   });
 
@@ -341,6 +346,7 @@ async function refreshState() {
 
 async function api(path, options = {}) {
   const response = await fetch(path, {
+    credentials: "same-origin",
     headers: { "content-type": "application/json" },
     ...options,
   });
@@ -353,13 +359,36 @@ async function api(path, options = {}) {
   return data;
 }
 
+function mapPersonToUser(person) {
+  if (!person) return null;
+  return {
+    id: person.id,
+    name: person.name || person.fullName || "Usuario",
+    email: person.email || "",
+    role: person.role || "owner",
+    permissions: [],
+  };
+}
+
+async function restoreSession() {
+  const me = await api("/api/me");
+  if (!me.authenticated) return null;
+  return me.user || mapPersonToUser(me.person);
+}
+
 async function boot() {
   try {
-    showApp();
-    await refreshState();
+    const user = await restoreSession();
+    if (user) {
+      currentUser = user;
+      showApp();
+      await refreshState();
+      return;
+    }
   } catch {
-    showApp();
+    // sem sessao ativa
   }
+  showLogin();
 }
 
 async function login() {
@@ -372,7 +401,8 @@ async function login() {
         password: els.loginPassword.value,
       }),
     });
-    currentUser = result.user;
+    currentUser = result.user || mapPersonToUser(result.person);
+    if (!currentUser) throw new Error("Nao foi possivel iniciar a sessao.");
     els.loginPassword.value = "";
     showApp();
     await refreshState();
@@ -393,6 +423,7 @@ function showLogin(message = "") {
   els.launcherScreen?.classList.add("hidden");
   document.body.classList.remove("launcher-open");
   els.loginScreen.classList.remove("hidden");
+  els.logoutBtn?.classList.add("hidden");
   if (message) {
     els.loginError.textContent = message;
     els.loginError.classList.remove("hidden");
@@ -404,6 +435,7 @@ function showLogin(message = "") {
 function showApp() {
   document.body.classList.remove("auth-locked");
   els.loginScreen.classList.add("hidden");
+  els.logoutBtn?.classList.remove("hidden");
   renderCurrentUser();
   showLauncher();
 }

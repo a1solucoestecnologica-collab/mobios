@@ -722,6 +722,16 @@ function loginUser(req, res, input) {
     }
   }
 
+  if (!user && result.person) {
+    user = {
+      id: result.person.id,
+      name: result.person.name || "Usuario",
+      email: result.person.email || "",
+      role: "owner",
+      permissions: [],
+    };
+  }
+
   return { user, person: result.person };
 }
 
