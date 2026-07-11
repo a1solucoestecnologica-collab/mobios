@@ -7,6 +7,7 @@ import { DatabaseSync } from "node:sqlite";
 import { hashPassword, verifyPassword } from "../../platform/server-handlers/services/auth/crypto.js";
 
 const KNOWN_WEAK = ["admin123", "123456", "password", "senha123"];
+const KNOWN_INSECURE_EMAILS = new Set(["admin@moble.tools", "admin@a1ponto.com"]);
 
 function parseArgs(argv) {
   const out = { db: "", email: "", password: "" };
@@ -71,6 +72,21 @@ for (const row of weakRows) {
     db.prepare("DELETE FROM person_access WHERE person_id = ?").run(row.person_id);
     console.log(`Removido acesso inseguro: ${row.username || row.person_id}`);
   }
+}
+
+try {
+  const platformUsers = db.prepare("SELECT id, email, password_hash FROM platform_users").all();
+  for (const user of platformUsers) {
+    const emailKey = String(user.email || "").trim().toLowerCase();
+    const insecureEmail = KNOWN_INSECURE_EMAILS.has(emailKey);
+    const weakPassword = isWeakHash(user.password_hash);
+    if (insecureEmail && weakPassword) {
+      db.prepare("DELETE FROM platform_users WHERE id = ?").run(user.id);
+      console.log(`Removido usuario legado inseguro: ${user.email}`);
+    }
+  }
+} catch {
+  // tabela legada pode nao existir
 }
 
 db.close();
