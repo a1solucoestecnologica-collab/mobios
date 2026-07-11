@@ -208,6 +208,23 @@ function migratePlatformSchema(db) {
 
   migratePeopleProfileSchema(db);
   migrateIdentityLinks(db);
+  migrateAdminApplicationAccess(db);
+}
+
+function migrateAdminApplicationAccess(db) {
+  const now = new Date().toISOString();
+  const admins = db
+    .prepare(
+      `SELECT DISTINCT pr.person_id AS personId
+       FROM person_roles pr
+       INNER JOIN role_permissions rp ON rp.role_id = pr.role_id
+       INNER JOIN permissions p ON p.id = rp.permission_id
+       WHERE p.code LIKE 'admin.%'`,
+    )
+    .all();
+  for (const row of admins) {
+    ensureAdminApplicationAccess(db, row.personId, now);
+  }
 }
 
 function migratePeopleProfileSchema(db) {
@@ -424,5 +441,28 @@ function seedIdentityFoundation(db, now) {
     if (!linked) {
       db.prepare("INSERT INTO role_permissions (role_id, permission_id, created_at) VALUES (?, ?, ?)").run(roleId, perm.id, now);
     }
+  }
+
+  ensureAdminApplicationAccess(db, personId, now);
+}
+
+function ensureAdminApplicationAccess(db, personId, now) {
+  const codes = db
+    .prepare(
+      `SELECT DISTINCT p.code FROM permissions p
+       INNER JOIN role_permissions rp ON rp.permission_id = p.id
+       INNER JOIN person_roles pr ON pr.role_id = rp.role_id
+       WHERE pr.person_id = ?`,
+    )
+    .all(personId)
+    .map((row) => row.code);
+  if (!codes.some((code) => code.startsWith("admin."))) return;
+
+  const apps = db.prepare("SELECT id FROM applications WHERE active = 1").all();
+  const insert = db.prepare(
+    "INSERT OR IGNORE INTO person_applications (person_id, application_id, created_at) VALUES (?, ?, ?)",
+  );
+  for (const app of apps) {
+    insert.run(personId, app.id, now);
   }
 }

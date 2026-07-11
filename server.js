@@ -15,6 +15,7 @@ import { platformLogin, platformLogout, buildRequestContext, createAuthorize } f
 import { initPortalDatabase, createPortalHandlers } from "./portal/server-handlers.js";
 import { initAdminDatabase, createAdminHandlers } from "./admin/server-handlers.js";
 import { assertProductionSecurity, bootstrapPlatformAdmin, isDevSeedAllowed } from "./platform/server-handlers/services/bootstrap/index.js";
+import { getAccessibleApplications, getPersonPermissionCodes } from "./platform/server-handlers/services/authorization/index.js";
 import { migratePlannerPersonLinks, reportIdentityLinkGaps } from "./platform/server-handlers/migrations/identity-hardening.js";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
@@ -733,7 +734,15 @@ function loginUser(req, res, input) {
     };
   }
 
-  return { user, person: result.person };
+  const permissions = result.person ? getPersonPermissionCodes(db, result.person.id) : [];
+  const accessibleApplications = result.person ? getAccessibleApplications(db, result.person.id) : [];
+
+  return {
+    user,
+    person: result.person,
+    permissions,
+    accessibleApplications,
+  };
 }
 
 function appendSessionCookie(res, name, value) {

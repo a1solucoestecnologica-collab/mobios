@@ -395,8 +395,38 @@ function permissionCodeList() {
   return (sessionContext.permissions || []).map((item) => (typeof item === "string" ? item : item.code)).filter(Boolean);
 }
 
+const APP_PERMISSION_PREFIX = {
+  tools: ["tools.", "dashboard."],
+  planner: ["planner."],
+  ponto: ["time."],
+  time: ["time."],
+  admin: ["admin."],
+  portal: ["portal."],
+};
+
+function normalizeAppSlug(slug) {
+  return slug === "ponto" ? "time" : slug;
+}
+
+function hasPermissionForApp(slug) {
+  const normalized = normalizeAppSlug(slug);
+  const prefixes = APP_PERMISSION_PREFIX[slug] || APP_PERMISSION_PREFIX[normalized] || [`${normalized}.`];
+  const codes = permissionCodeList();
+  return prefixes.some((prefix) => codes.some((code) => code.startsWith(prefix)));
+}
+
+function sessionAppsLoaded() {
+  return (sessionContext.accessibleApplications || []).length > 0 || permissionCodeList().length > 0;
+}
+
 function hasAppAccess(slug) {
-  return (sessionContext.accessibleApplications || []).some((app) => app.slug === slug);
+  const normalized = normalizeAppSlug(slug);
+  const listed = (sessionContext.accessibleApplications || []).some((app) => app.slug === normalized);
+  if (listed) return true;
+  if (!sessionAppsLoaded()) {
+    return normalized !== "admin";
+  }
+  return hasPermissionForApp(slug);
 }
 
 function hasAdminAccess() {
@@ -407,11 +437,7 @@ function hasAdminAccess() {
 function applyLauncherVisibility() {
   document.querySelectorAll(".launcher-app").forEach((button) => {
     const product = button.dataset.launch;
-    let allowed = true;
-    if (product === "admin") allowed = hasAdminAccess();
-    else if (product === "tools") allowed = hasAppAccess("tools");
-    else if (product === "planner") allowed = hasAppAccess("planner");
-    else if (product === "ponto") allowed = hasAppAccess("time");
+    const allowed = product === "admin" ? hasAdminAccess() : hasAppAccess(product);
     button.classList.toggle("hidden", !allowed);
     button.disabled = !allowed;
   });
@@ -445,16 +471,23 @@ async function login() {
     currentUser = result.user || mapPersonToUser(result.person);
     if (!currentUser) throw new Error("Nao foi possivel iniciar a sessao.");
 
-    try {
-      const me = await api("/api/me");
-      if (me.authenticated) {
-        sessionContext = {
-          permissions: me.permissions || [],
-          accessibleApplications: me.accessibleApplications || [],
-        };
+    sessionContext = {
+      permissions: result.permissions || [],
+      accessibleApplications: result.accessibleApplications || [],
+    };
+
+    if (!sessionContext.accessibleApplications.length && !permissionCodeList().length) {
+      try {
+        const me = await api("/api/me");
+        if (me.authenticated) {
+          sessionContext = {
+            permissions: me.permissions || [],
+            accessibleApplications: me.accessibleApplications || [],
+          };
+        }
+      } catch {
+        // mantem contexto do login
       }
-    } catch {
-      sessionContext = { permissions: [], accessibleApplications: [] };
     }
 
     els.loginPassword.value = "";
@@ -584,29 +617,20 @@ function showLauncher() {
 
 // Escolha de um app no launcher: entra no produto e fecha a tela de apps.
 function openProduct(product) {
-  if (product === "admin" && !hasAdminAccess()) {
+  const target = product || "tools";
+  if (target === "admin" && !hasAdminAccess()) {
     window.alert("Você não tem permissão para acessar o MÖBI Admin.");
     showLauncher();
     return;
   }
-  if (product === "tools" && !hasAppAccess("tools")) {
-    window.alert("Você não tem permissão para acessar o MÖBI Tools.");
-    showLauncher();
-    return;
-  }
-  if (product === "planner" && !hasAppAccess("planner")) {
-    window.alert("Você não tem permissão para acessar o MÖBI WorkMaps.");
-    showLauncher();
-    return;
-  }
-  if (product === "ponto" && !hasAppAccess("time")) {
-    window.alert("Você não tem permissão para acessar o MÖBI Time.");
+  if (target !== "admin" && !hasAppAccess(target === "ponto" ? "time" : target)) {
+    window.alert("Você não tem permissão para acessar este aplicativo.");
     showLauncher();
     return;
   }
   els.launcherScreen?.classList.add("hidden");
   document.body.classList.remove("launcher-open");
-  switchProduct(product || "tools");
+  switchProduct(target);
 }
 
 function switchProduct(product) {
@@ -614,10 +638,12 @@ function switchProduct(product) {
   const isPonto = product === "ponto";
   const isAdmin = product === "admin";
   const isPortal = product === "portal";
+  const isTools = !isPlanner && !isPonto && !isAdmin && !isPortal;
   document.body.classList.toggle("product-planner", isPlanner);
   document.body.classList.toggle("product-ponto", isPonto);
   document.body.classList.toggle("product-admin", isAdmin);
   document.body.classList.toggle("product-portal", isPortal);
+  document.body.classList.toggle("product-tools", isTools);
 
   const brandSuffix = document.querySelector("#brandSuffix");
   if (brandSuffix) {
@@ -636,10 +662,14 @@ function switchProduct(product) {
   pontoShell?.classList.toggle("hidden", !isPonto);
   adminShell?.classList.toggle("hidden", !isAdmin);
   portalShell?.classList.toggle("hidden", !isPortal);
-  document.querySelector("#toolsNavList")?.classList.toggle("hidden", isPonto || isAdmin || isPortal);
+  document.querySelector("#toolsNavList")?.classList.toggle("hidden", !isTools);
   document.querySelector("#pontoNavList")?.classList.toggle("hidden", !isPonto);
   document.querySelector("#adminNavList")?.classList.toggle("hidden", !isAdmin);
   document.body.classList.remove("sidebar-open");
+
+  if (isTools) {
+    switchView("tools");
+  }
 
   if (isPlanner) mountPlanner(activePlannerMode);
   if (isPonto) {

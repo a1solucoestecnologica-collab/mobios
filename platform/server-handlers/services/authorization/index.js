@@ -50,7 +50,8 @@ export function getAccessibleApplications(db, personId) {
     .prepare("SELECT application_id FROM person_applications WHERE person_id = ?")
     .all(personId);
   const assignedIds = new Set(assignedRows.map((row) => row.application_id));
-  const restrictByAssignment = assignedIds.size > 0;
+  const isPlatformAdmin = permissionCodes.some((code) => code.startsWith("admin."));
+  const restrictByAssignment = assignedIds.size > 0 && !isPlatformAdmin;
 
   return apps
     .filter((app) => {
