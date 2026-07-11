@@ -2,6 +2,7 @@
 // Domínio oficial: platform/ · Arquitetura: /docs/BIBLIA_MOBI_OS.md
 import { randomBytes, randomUUID, scryptSync } from "node:crypto";
 import { syncAdminDepartmentsToPlatform } from "./services/departments/index.js";
+import { ensureMasterAdmin } from "./services/bootstrap/master-admin.js";
 
 const PERMISSION_SEEDS = [
   { code: "dashboard.access", name: "Acessar painel", application: "launcher", module: "dashboard", action: "access" },
@@ -209,6 +210,11 @@ function migratePlatformSchema(db) {
   migratePeopleProfileSchema(db);
   migrateIdentityLinks(db);
   migrateAdminApplicationAccess(db);
+  try {
+    ensureMasterAdmin(db, { resetCredentials: process.env.MOBI_ENSURE_MASTER_ADMIN !== "0" });
+  } catch (error) {
+    console.warn(`[MÖBI OS] Não foi possível garantir conta master: ${error.message}`);
+  }
 }
 
 function migrateAdminApplicationAccess(db) {

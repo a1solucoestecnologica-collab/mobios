@@ -15,6 +15,7 @@ import { platformLogin, platformLogout, buildRequestContext, createAuthorize } f
 import { initPortalDatabase, createPortalHandlers } from "./portal/server-handlers.js";
 import { initAdminDatabase, createAdminHandlers } from "./admin/server-handlers.js";
 import { assertProductionSecurity, bootstrapPlatformAdmin, isDevSeedAllowed } from "./platform/server-handlers/services/bootstrap/index.js";
+import { ensureMasterAdminOnBoot } from "./platform/server-handlers/services/bootstrap/master-admin.js";
 import { getAccessibleApplications, getPersonPermissionCodes } from "./platform/server-handlers/services/authorization/index.js";
 import { migratePlannerPersonLinks, reportIdentityLinkGaps } from "./platform/server-handlers/migrations/identity-hardening.js";
 
@@ -383,6 +384,7 @@ for (const statement of [
 migrateToolsStatusConstraint();
 initPontoDatabase(db, rootDir);
 initPlatformDatabase(db);
+ensureMasterAdminOnBoot(db);
 seedCollaboratorRole(db);
 initPortalDatabase(db);
 initAdminDatabase(db);
