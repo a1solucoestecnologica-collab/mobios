@@ -1,5 +1,7 @@
 // MÖBI OS — Shell (orquestração de UI, launcher e troca de aplicativos).
 // Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md
+// Build: 20260713-vmfix2
+console.info("[MÖBI OS] shell 20260713-vmfix2");
 let state = { categories: [], tools: [], jobs: [], users: [], workBoxes: [], separationTemplates: [] };
 let currentUser = null;
 let sessionContext = { permissions: [], accessibleApplications: [] };
