@@ -45,7 +45,7 @@ const permissionLabels = {
 };
 
 const els = {
-  navItems: document.querySelectorAll(".nav-item"),
+  navItems: document.querySelectorAll("#toolsNavList .nav-item"),
   menuToggleBtn: document.querySelector("#menuToggleBtn"),
   loginScreen: document.querySelector("#loginScreen"),
   launcherScreen: document.querySelector("#launcherScreen"),
@@ -184,6 +184,10 @@ let currentRequiredEditJob = null;
 let currentWorkBoxEdit = null;
 let currentTemplateEdit = null;
 
+function bindClick(el, handler) {
+  if (el) el.addEventListener("click", handler);
+}
+
 function bindEvents() {
   els.loginForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
@@ -212,11 +216,7 @@ function bindEvents() {
 
   els.navItems.forEach((item) => {
     item.addEventListener("click", () => {
-      if (!item.dataset.view && item.textContent.includes("Lista Requerida")) {
-        switchView("required");
-        document.body.classList.remove("sidebar-open");
-        return;
-      }
+      if (item.disabled) return;
       if (!item.dataset.view) return;
       switchView(item.dataset.view);
       document.body.classList.remove("sidebar-open");
@@ -240,24 +240,24 @@ function bindEvents() {
     button.addEventListener("click", () => switchTemplateDialogTab(button.dataset.templateTab));
   });
 
-  els.newToolBtn.addEventListener("click", () => openToolDialog());
+  bindClick(els.newToolBtn, () => openToolDialog());
   els.openRequiredViewBtn?.addEventListener("click", () => switchView("required"));
   els.openWorkBoxesViewBtn?.addEventListener("click", () => switchView("workBoxes"));
   els.openUsersViewBtn?.addEventListener("click", () => switchView("users"));
-  els.mobileNewToolBtn.addEventListener("click", () => openToolDialog());
-  els.emptyNewToolBtn.addEventListener("click", () => openToolDialog());
-  els.newCategoryBtn.addEventListener("click", () => openCategoryDialog());
-  els.newRequiredListBtn.addEventListener("click", () => openRequiredDialog());
+  bindClick(els.mobileNewToolBtn, () => openToolDialog());
+  bindClick(els.emptyNewToolBtn, () => openToolDialog());
+  bindClick(els.newCategoryBtn, () => openCategoryDialog());
+  bindClick(els.newRequiredListBtn, () => openRequiredDialog());
   els.emptyRequiredListBtn?.addEventListener("click", () => openRequiredDialog());
-  els.newTemplateBtn.addEventListener("click", () => openTemplateDialog());
-  els.newWorkBoxBtn.addEventListener("click", () => openWorkBoxDialog());
-  els.emptyNewWorkBoxBtn.addEventListener("click", () => openWorkBoxDialog());
-  els.newUserBtn.addEventListener("click", () => openUserDialog());
-  els.emptyNewUserBtn.addEventListener("click", () => openUserDialog());
-  els.exportJsonBtn.addEventListener("click", exportJson);
+  bindClick(els.newTemplateBtn, () => openTemplateDialog());
+  bindClick(els.newWorkBoxBtn, () => openWorkBoxDialog());
+  bindClick(els.emptyNewWorkBoxBtn, () => openWorkBoxDialog());
+  bindClick(els.newUserBtn, () => openUserDialog());
+  bindClick(els.emptyNewUserBtn, () => openUserDialog());
+  bindClick(els.exportJsonBtn, exportJson);
   els.seedBtn?.addEventListener("click", seedExamples);
-  els.prevToolStepBtn.addEventListener("click", () => setToolStep(currentToolStep - 1));
-  els.nextToolStepBtn.addEventListener("click", () => {
+  bindClick(els.prevToolStepBtn, () => setToolStep(currentToolStep - 1));
+  bindClick(els.nextToolStepBtn, () => {
     if (!validateToolStep(currentToolStep)) return;
     setToolStep(currentToolStep + 1);
   });
@@ -274,43 +274,43 @@ function bindEvents() {
     button.addEventListener("click", () => applyCategoryGuide(button.dataset.categoryMatch));
   });
 
-  els.detailEditBtn.addEventListener("click", async () => {
+  bindClick(els.detailEditBtn, async () => {
     const tool = currentDetailToolId ? await api(`/api/tools/${currentDetailToolId}`) : null;
     if (!tool) return;
     els.detailDialog.close();
     openToolDialog(tool);
   });
 
-  els.detailQrBtn.addEventListener("click", async () => {
+  bindClick(els.detailQrBtn, async () => {
     if (!currentDetailToolId) return;
     els.detailDialog.close();
     await openQrDialog(currentDetailToolId);
   });
 
   [els.toolSearch, els.statusFilter, els.categoryFilter].forEach((input) => {
-    input.addEventListener("input", renderTools);
+    input?.addEventListener("input", renderTools);
   });
-  els.requiredToolSearch.addEventListener("input", renderRequiredToolPicker);
-  els.templateToolSearch.addEventListener("input", renderTemplateToolPicker);
-  els.workBoxToolSearch.addEventListener("input", renderWorkBoxToolPicker);
-  els.requiredTemplateSelect.addEventListener("change", applySelectedTemplateToRequiredDialog);
+  els.requiredToolSearch?.addEventListener("input", renderRequiredToolPicker);
+  els.templateToolSearch?.addEventListener("input", renderTemplateToolPicker);
+  els.workBoxToolSearch?.addEventListener("input", renderWorkBoxToolPicker);
+  els.requiredTemplateSelect?.addEventListener("change", applySelectedTemplateToRequiredDialog);
 
-  document.querySelector("#toolCategory").addEventListener("change", () => {
+  document.querySelector("#toolCategory")?.addEventListener("change", () => {
     updateSubcategoryOptions();
     updateCategoryGuideSelection();
   });
-  document.querySelector("#toolStatus").addEventListener("change", updateToolLocationFields);
-  document.querySelector("#toolCurrentJobId").addEventListener("change", updateToolCurrentJobLabelFromSelect);
-  els.choosePhotoBtn.addEventListener("click", () => els.toolPhoto.click());
-  els.cameraPhotoBtn.addEventListener("click", () => els.toolCameraPhoto.click());
-  els.toolPhoto.addEventListener("change", handlePhotoSelection);
-  els.toolCameraPhoto.addEventListener("change", handlePhotoSelection);
-  els.toolPhotoPreview.addEventListener("click", () => {
-    if (currentPhotoData) openPhotoDialog(currentPhotoData, document.querySelector("#toolName").value || "Ferramenta");
+  document.querySelector("#toolStatus")?.addEventListener("change", updateToolLocationFields);
+  document.querySelector("#toolCurrentJobId")?.addEventListener("change", updateToolCurrentJobLabelFromSelect);
+  bindClick(els.choosePhotoBtn, () => els.toolPhoto?.click());
+  bindClick(els.cameraPhotoBtn, () => els.toolCameraPhoto?.click());
+  els.toolPhoto?.addEventListener("change", handlePhotoSelection);
+  els.toolCameraPhoto?.addEventListener("change", handlePhotoSelection);
+  els.toolPhotoPreview?.addEventListener("click", () => {
+    if (currentPhotoData) openPhotoDialog(currentPhotoData, document.querySelector("#toolName")?.value || "Ferramenta");
   });
-  els.removePhotoBtn.addEventListener("click", removeCurrentPhoto);
-  els.downloadQrBtn.addEventListener("click", downloadCurrentQr);
-  els.printQrBtn.addEventListener("click", () => window.print());
+  bindClick(els.removePhotoBtn, removeCurrentPhoto);
+  bindClick(els.downloadQrBtn, downloadCurrentQr);
+  bindClick(els.printQrBtn, () => window.print());
 
   document.querySelectorAll("[data-close-dialog]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -318,38 +318,38 @@ function bindEvents() {
     });
   });
 
-  els.toolForm.addEventListener("submit", async (event) => {
+  els.toolForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     if (!validateToolForm()) return;
     await saveToolFromForm();
   });
 
-  els.categoryForm.addEventListener("submit", async (event) => {
+  els.categoryForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveCategoryFromForm();
   });
 
-  els.requiredForm.addEventListener("submit", async (event) => {
+  els.requiredForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveRequiredListFromForm();
   });
 
-  els.templateForm.addEventListener("submit", async (event) => {
+  els.templateForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveTemplateFromForm();
   });
 
-  els.workBoxForm.addEventListener("submit", async (event) => {
+  els.workBoxForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveWorkBoxFromForm();
   });
 
-  els.workBoxCheckForm.addEventListener("submit", async (event) => {
+  els.workBoxCheckForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveWorkBoxCheckFromForm();
   });
 
-  els.userForm.addEventListener("submit", async (event) => {
+  els.userForm?.addEventListener("submit", async (event) => {
     event.preventDefault();
     await saveUserFromForm();
   });

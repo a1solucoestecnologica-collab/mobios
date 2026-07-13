@@ -117,7 +117,7 @@
 
       <aside class="sidebar" aria-label="Navegacao principal">
         <nav class="nav-list" id="toolsNavList">
-          <button class="nav-item" type="button">
+          <button class="nav-item" type="button" data-view="tools">
             <span class="nav-icon">▦</span>
             <span>Painel</span>
           </button>
@@ -129,7 +129,7 @@
             <span class="nav-icon">≡</span>
             <span>Categorias</span>
           </button>
-          <button class="nav-item" type="button">
+          <button class="nav-item hidden" type="button" disabled title="Em breve">
             <span class="nav-icon">▤</span>
             <span>Planejamento</span>
           </button>
@@ -145,19 +145,19 @@
             <span class="nav-icon">▥</span>
             <span>Lista Requerida</span>
           </button>
-          <button class="nav-item" type="button">
+          <button class="nav-item hidden" type="button" disabled title="Em breve">
             <span class="nav-icon">⇄</span>
             <span>Carga</span>
           </button>
-          <button class="nav-item" type="button">
+          <button class="nav-item hidden" type="button" disabled title="Em breve">
             <span class="nav-icon">↩</span>
             <span>Retorno</span>
           </button>
-          <button class="nav-item" type="button">
+          <button class="nav-item hidden" type="button" disabled title="Em breve">
             <span class="nav-icon">◷</span>
             <span>Histórico</span>
           </button>
-          <button class="nav-item" type="button">
+          <button class="nav-item hidden" type="button" disabled title="Em breve">
             <span class="nav-icon">▧</span>
             <span>Relatórios</span>
           </button>
@@ -165,7 +165,7 @@
             <span class="nav-icon">○</span>
             <span>Colaboradores</span>
           </button>
-          <button class="nav-item" type="button">
+          <button class="nav-item hidden" type="button" disabled title="Em breve">
             <span class="nav-icon">⚙</span>
             <span>Configurações</span>
           </button>
@@ -601,7 +601,7 @@
           </div>
           <label>
             Situação
-            <select class="input" id="toolSituação" required>
+            <select class="input" id="toolStatus" required>
               <option value="active">Disponivel</option>
               <option value="in_work">Em obra</option>
               <option value="loaned">Emprestada</option>
@@ -808,7 +808,7 @@
           </label>
           <label>
             Situação
-            <select class="input" id="workBoxSituação">
+            <select class="input" id="workBoxStatus">
               <option value="active">Ativa</option>
               <option value="inactive">Inativa</option>
             </select>
@@ -906,7 +906,7 @@
           </label>
           <label class="hidden">
             Acesso
-            <select class="input" id="userAccessSituação">
+            <select class="input" id="userAccessStatus">
               <option value="enabled">Liberado</option>
               <option value="disabled">Bloqueado</option>
             </select>
@@ -995,7 +995,7 @@
             </div>
             <div class="detail-kv">
               <span>Situação</span>
-              <strong id="detailSituação"></strong>
+              <strong id="detailStatus"></strong>
             </div>
             <div class="detail-kv">
               <span>Categoria</span>
@@ -1034,6 +1034,6 @@
     <script type="module" src="./ponto/dist/ponto.js?v=20260710-time10"></script>
     <script type="module" src="./admin/dist/admin.js?v=20260710-admin11"></script>
     <script type="module" src="./portal/dist/portal.js?v=20260710-portal12"></script>
-    <script type="module" src="./app.js?v=20260713-bootfix1"></script>
+    <script type="module" src="./app.js?v=20260713-idsfix1"></script>
   </body>
 </html>
