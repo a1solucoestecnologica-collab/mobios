@@ -1,7 +1,7 @@
 // MÖBI OS — Shell (orquestração de UI, launcher e troca de aplicativos).
 // Arquitetura oficial: /docs/BIBLIA_MOBI_OS.md
-// Build: 20260713-vmfix2
-console.info("[MÖBI OS] shell 20260713-vmfix2");
+// Build: 20260713-bootfix3
+console.info("[MÖBI OS] shell 20260713-bootfix3");
 let state = { categories: [], tools: [], jobs: [], users: [], workBoxes: [], separationTemplates: [] };
 let currentUser = null;
 let sessionContext = { permissions: [], accessibleApplications: [] };
@@ -57,6 +57,7 @@ const els = {
   loginEmail: document.querySelector("#loginEmail"),
   loginPassword: document.querySelector("#loginPassword"),
   loginError: document.querySelector("#loginError"),
+  loginBootMsg: document.querySelector("#loginBootMsg"),
   logoutBtn: document.querySelector("#logoutBtn"),
   headerLogoutBtn: document.querySelector("#headerLogoutBtn"),
   userChipBtn: document.querySelector("#userChipBtn"),
@@ -446,14 +447,30 @@ function applyLauncherVisibility() {
   });
 }
 
+function showBootChecking() {
+  document.body.classList.add("auth-locked");
+  els.loginScreen?.classList.remove("hidden");
+  els.launcherScreen?.classList.add("hidden");
+  document.body.classList.remove("launcher-open");
+  els.loginBootMsg?.classList.remove("hidden");
+  els.loginError?.classList.add("hidden");
+}
+
+function hideBootChecking() {
+  els.loginBootMsg?.classList.add("hidden");
+}
+
 async function boot() {
+  showBootChecking();
   let restored = null;
   try {
     restored = await restoreSession();
   } catch {
+    hideBootChecking();
     showLogin();
     return;
   }
+  hideBootChecking();
   if (restored) {
     currentUser = restored;
     showApp();
@@ -517,6 +534,7 @@ async function logout() {
 
 function showLogin(message = "") {
   document.body.classList.add("auth-locked");
+  hideBootChecking();
   els.launcherScreen?.classList.add("hidden");
   document.body.classList.remove("launcher-open");
   els.loginScreen.classList.remove("hidden");

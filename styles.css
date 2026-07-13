@@ -58,6 +58,17 @@ body.auth-locked .launcher {
   display: none;
 }
 
+.login-boot-msg {
+  margin: 0;
+  text-align: center;
+  font-size: 0.92rem;
+  color: var(--muted-foreground, #64748b);
+}
+
+.login-boot-msg.hidden {
+  display: none;
+}
+
 .login-screen-inner {
   width: min(420px, 100%);
   text-align: center;

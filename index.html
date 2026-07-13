@@ -5,14 +5,21 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>MÖBI Tools | Cadastro de Ferramentas</title>
-    <link rel="stylesheet" href="./styles.css?v=20260713-vmfix2" />
-    <link rel="stylesheet" href="./planner/dist/planner.css?v=20260713-vmfix2" />
-    <link rel="stylesheet" href="./ponto/dist/ponto.css?v=20260713-vmfix2" />
-    <link rel="stylesheet" href="./admin/dist/admin.css?v=20260713-vmfix2" />
-    <link rel="stylesheet" href="./portal/dist/portal.css?v=20260713-vmfix2" />
+    <link rel="stylesheet" href="./styles.css?v=20260713-bootfix3" />
+    <link rel="stylesheet" href="./planner/dist/planner.css?v=20260713-bootfix3" />
+    <link rel="stylesheet" href="./ponto/dist/ponto.css?v=20260713-bootfix3" />
+    <link rel="stylesheet" href="./admin/dist/admin.css?v=20260713-bootfix3" />
+    <link rel="stylesheet" href="./portal/dist/portal.css?v=20260713-bootfix3" />
+    <style>
+      body.auth-locked .app-shell,
+      body.auth-locked .mobile-tabbar,
+      body.auth-locked .launcher {
+        display: none !important;
+      }
+    </style>
   </head>
-  <body>
-    <section class="login-screen hidden" id="loginScreen">
+  <body class="auth-locked">
+    <section class="login-screen" id="loginScreen">
       <div class="login-screen-inner">
         <header class="login-screen-head">
           <p class="launcher-eyebrow">MÖBI</p>
@@ -29,6 +36,7 @@
             <input class="input" id="loginPassword" type="password" autocomplete="current-password" required />
           </label>
           <button class="button primary login-submit" type="submit">Entrar</button>
+          <p class="login-boot-msg" id="loginBootMsg">Verificando sessão…</p>
           <p class="login-error hidden" id="loginError"></p>
         </form>
       </div>
@@ -1030,10 +1038,10 @@
 
     <div class="toast hidden" id="toast" role="status"></div>
 
-    <script type="module" src="./planner/dist/planner.js?v=20260713-vmfix2"></script>
-    <script type="module" src="./ponto/dist/ponto.js?v=20260713-vmfix2"></script>
-    <script type="module" src="./admin/dist/admin.js?v=20260713-vmfix2"></script>
-    <script type="module" src="./portal/dist/portal.js?v=20260713-vmfix2"></script>
-    <script type="module" src="./app.js?v=20260713-vmfix2"></script>
+    <script type="module" src="./planner/dist/planner.js?v=20260713-bootfix3"></script>
+    <script type="module" src="./ponto/dist/ponto.js?v=20260713-bootfix3"></script>
+    <script type="module" src="./admin/dist/admin.js?v=20260713-bootfix3"></script>
+    <script type="module" src="./portal/dist/portal.js?v=20260713-bootfix3"></script>
+    <script type="module" src="./app.js?v=20260713-bootfix3"></script>
   </body>
 </html>
