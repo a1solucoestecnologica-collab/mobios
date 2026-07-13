@@ -475,8 +475,7 @@ async function handleApi(req, res, url) {
       });
       return;
     }
-    const user = getAuthenticatedUser(req);
-    sendJson(res, 200, { authenticated: Boolean(user), user });
+    sendJson(res, 200, { authenticated: false });
     return;
   }
 
@@ -712,21 +711,7 @@ function loginUser(req, res, input) {
   }
 
   let user = null;
-  if (result.legacyUserId) {
-    const legacyUser = db
-      .prepare(
-        `SELECT id, name, email, role, access_status AS accessStatus, permissions, password_hash AS passwordHash
-         FROM platform_users WHERE id = ?`,
-      )
-      .get(result.legacyUserId);
-    if (legacyUser) {
-      const sessionId = createSession(legacyUser.id);
-      appendSessionCookie(res, "moble_session", sessionId);
-      user = publicUser(legacyUser);
-    }
-  }
-
-  if (!user && result.person) {
+  if (result.person) {
     user = {
       id: result.person.id,
       name: result.person.name || "Usuario",
@@ -758,7 +743,11 @@ function appendSessionCookie(res, name, value) {
 function logoutUser(req, res) {
   const sessionId = getSessionId(req);
   if (sessionId) db.prepare("DELETE FROM sessions WHERE id = ?").run(sessionId);
-  res.setHeader("Set-Cookie", "moble_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  const legacyCookie = "moble_session=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0";
+  const existing = res.getHeader("Set-Cookie");
+  if (Array.isArray(existing)) res.setHeader("Set-Cookie", [...existing, legacyCookie]);
+  else if (existing) res.setHeader("Set-Cookie", [existing, legacyCookie]);
+  else res.setHeader("Set-Cookie", legacyCookie);
   platformLogout(db, req, res);
 }
 

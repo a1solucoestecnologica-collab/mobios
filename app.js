@@ -389,12 +389,16 @@ function mapPersonToUser(person) {
 
 async function restoreSession() {
   const me = await api("/api/me");
-  if (!me.authenticated) return null;
+  if (!me.authenticated || !me.person) return null;
   sessionContext = {
     permissions: me.permissions || [],
     accessibleApplications: me.accessibleApplications || [],
   };
-  return me.user || mapPersonToUser(me.person);
+  return mapPersonToUser(me.person);
+}
+
+async function clearStaleAuthCookies() {
+  await api("/api/logout", { method: "POST" }).catch(() => null);
 }
 
 function permissionCodeList() {
@@ -441,17 +445,22 @@ function applyLauncherVisibility() {
 }
 
 async function boot() {
+  let restored = null;
   try {
-    const user = await restoreSession();
-    if (user) {
-      currentUser = user;
-      showApp();
-      await refreshState();
-      return;
-    }
+    restored = await restoreSession();
   } catch {
-    // sem sessao ativa
+    showLogin();
+    return;
   }
+  if (restored) {
+    currentUser = restored;
+    showApp();
+    await refreshState();
+    return;
+  }
+  await clearStaleAuthCookies();
+  currentUser = null;
+  sessionContext = { permissions: [], accessibleApplications: [] };
   showLogin();
 }
 
@@ -467,6 +476,7 @@ async function login() {
     });
     currentUser = result.user || mapPersonToUser(result.person);
     if (!currentUser) throw new Error("Nao foi possivel iniciar a sessao.");
+    if (!result.person) throw new Error("Sessao invalida. Faca login novamente.");
 
     sessionContext = {
       permissions: result.permissions || [],
