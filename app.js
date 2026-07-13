@@ -4,6 +4,15 @@ let state = { categories: [], tools: [], jobs: [], users: [], workBoxes: [], sep
 let currentUser = null;
 let sessionContext = { permissions: [], accessibleApplications: [] };
 
+const APP_PERMISSION_PREFIX = {
+  tools: ["tools.", "dashboard."],
+  planner: ["planner."],
+  ponto: ["time."],
+  time: ["time."],
+  admin: ["admin."],
+  portal: ["portal."],
+};
+
 const statusLabels = {
   active: "Disponivel",
   in_work: "Em obra",
@@ -174,9 +183,6 @@ let currentDetailToolId = null;
 let currentRequiredEditJob = null;
 let currentWorkBoxEdit = null;
 let currentTemplateEdit = null;
-
-bindEvents();
-await boot();
 
 function bindEvents() {
   els.loginForm?.addEventListener("submit", async (event) => {
@@ -394,15 +400,6 @@ async function restoreSession() {
 function permissionCodeList() {
   return (sessionContext.permissions || []).map((item) => (typeof item === "string" ? item : item.code)).filter(Boolean);
 }
-
-const APP_PERMISSION_PREFIX = {
-  tools: ["tools.", "dashboard."],
-  planner: ["planner."],
-  ponto: ["time."],
-  time: ["time."],
-  admin: ["admin."],
-  portal: ["portal."],
-};
 
 function normalizeAppSlug(slug) {
   return slug === "ponto" ? "time" : slug;
@@ -2548,3 +2545,6 @@ window.MoobleOs = {
   },
 };
 window.openProduct = openProduct;
+
+bindEvents();
+await boot();
